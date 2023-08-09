@@ -15,6 +15,9 @@
 
 include "hardware.inc"  ; Include hardware definitions so we can use nice names for things
 include "engine/movement.asm"  ; Include hardware definitions so we can use nice names for things
+include "engine/player_animations.asm"  ; Include hardware definitions so we can use nice names for things
+include "engine/background_tilemap.asm"
+include "engine/timer.asm"
 INCLUDE "math.asm"
 
 ;============================================================================================================================
@@ -27,16 +30,30 @@ def OBJ_Y_OFFSET equ -9         ; Since we're using two objects to draw the play
 def OBJ_X_OFFSET equ -4         ;  on an 8x8 grid, we offset things slightly to center the player on the current tile
 
 rsreset                         ; Reset the _RS counter to 0 for a new set of defines
-def FACE_LEFT   rb 1            ; Define FACE_LEFT as 0
-def FACE_RIGHT  rb 1            ; Define FACE_RIGHT as 1
-def FACE_UP     rb 1            ; Define FACE_UP as 2
-def FACE_DOWN   rb 1            ; Define FACE_DOWN as 3
+def FACE_LEFT   EQU 2            ; Define FACE_LEFT as 2
+def FACE_RIGHT  EQU 3            ; Define FACE_RIGHT as 2
+def FACE_UP     EQU 1            ; Define FACE_UP as 1
+def FACE_DOWN   EQU 0            ; Define FACE_DOWN as 0
 
 ;============================================================================================================================
 ; Game State Variables
 ;============================================================================================================================
 
 SECTION "Game State Variables", WRAM0
+
+movementState:   ds 1    ; Define a 1-byte variable to store the movement state
+timerCounter:   ds 1  ; Define a variable to store the timer counter
+hasStarted:     ds 1
+
+walkCounter: ds 1 ; 
+
+; Define Movement States
+MOVEMENT_IDLE EQU 0
+MOVEMENT_MOVING EQU 1
+
+; Cooldown Value (in frames) for transitioning to idle state after movement
+COOLDOWN_FRAMES EQU 60   ; 30 frames (assuming 60 frames per second) = 0.5 seconds
+
 
 ; This would hold the position and orientation values of the player
 wPlayer:
@@ -105,9 +122,9 @@ EntryPoint:
     jr nz, .oamdmaCopyLoop ; If B isn't zero, continue looping
 
     ; Copy our sprite and background tiles to VRAM
-    ld hl, SpriteTileData ; Load the source address of our tiles into HL
+    ld hl, PlayerTileData ; Load the source address of our tiles into HL
     ld de, _VRAM        ; Load the destination address in VRAM into DE
-    ld bc, SpriteTileData.end - SpriteTileData ; Load the number of bytes to copy into BC
+    ld bc, PlayerTileData.end - PlayerTileData ; Load the number of bytes to copy into BC
     call MemCopy        ; Call our general-purpose memory copy routine
 
     ld hl, BackgroundTileData ; Load the source address of our tiles into HL
@@ -115,24 +132,7 @@ EntryPoint:
     ld bc, BackgroundTileData.end - BackgroundTileData ; Load the number of bytes to copy into BC
     call MemCopy        ; Call our general-purpose memory copy routine
 
-    ; Copy our 20x18 tilemap to VRAM
-    ld de, TilemapData  ; Load the source address of our tilemap into DE
-    ld hl, _SCRN0       ; Point HL to the first byte of the tilemap ($9800)
-    ld b, SCRN_Y_B      ; Load the height of the screen in tiles into B (18 tiles)
-.tilemapLoop
-    ld c, SCRN_X_B      ; Load the width of the screen in tiles into C (20 tiles)
-.rowLoop
-    ld a, [de]          ; Load a byte from the address DE points to into the A register
-    ld [hli], a         ; Load the byte in the A register to the address HL points to and increment HL
-    inc de              ; Increment the source pointer in DE
-    dec c               ; Decrement the loop counter in C (tiles per row)
-    jr nz, .rowLoop     ; If C isn't zero, continue copying bytes for this row
-    push de             ; Push the contents of the register pair DE to the stack
-    ld de, SCRN_VX_B - SCRN_X_B ; Load the number of tiles remaining in the row into DE
-    add hl, de          ; Add the remaining row length to HL, advancing the destination pointer to the next row
-    pop de              ; Recover the former contents of the the register pair DE
-    dec b               ; Decrement the loop counter in B (total rows)
-    jr nz, .tilemapLoop ; If B isn't zero, continue copying rows
+    call SetTileMap
 
     ; Setup palettes and scrolling
     ld a, %11100100     ; Define a 4-shade palette from darkest (11) to lightest (00)
@@ -147,6 +147,18 @@ EntryPoint:
     ldh [rSCY], a       ; Set the vertical camera position (SCY) to the desired Y coordinate
 
     ldh [hCurrentKeys], a ; Zero our current keys just to be safe (A is already zero from earlier)
+
+    ; Movement Timer (initialized with 0)
+    ld a, 0
+    ld [movementTimer], a
+
+    ; OnCooldown
+    ld a, 0
+    ld [hasStarted], a
+
+    ; Initialize Movement State
+    ld a, MOVEMENT_IDLE
+    ld [movementState], a   ; Initialize movementState with MOVEMENT_IDLE
 
     ; Initialize shadow OAM to zero
     ld hl, wShadowOAM   ; Point HL to the start of shadow OAM
@@ -197,16 +209,13 @@ LoopForever:
     call ProcessInput   ; Update the game state in response to user input
     call PopulateShadowOAM ; Update the sprite locations for the next frame
 
+    call LoopTimer
+
     jr LoopForever      ; Loop forever
 
-;============================================================================================================================
-; Initial Routines
-;============================================================================================================================
-
-
 
 ;============================================================================================================================
-; Main Routines
+; Main Routines (Functions)
 ;============================================================================================================================
 
 SECTION "Main Routines", ROMX
@@ -242,61 +251,6 @@ GetTileID:
     pop bc              ; Recover the original input coordinates from the stack
     ret
 
-; Populate ShadowOAM with sprites based on the game state
-PopulateShadowOAM:
-    ld hl, wShadowOAM   ; Point HL at the beginning of wShadowOAM
-
-    ; First sprite
-    ld a, 72            ; Load the initial Y coordinate of the player
-    add a               ; To convert the Y grid coordinate into screen coordinates we have to multiply
-    add a               ;  by 8, which can be done quickly by adding A to itself 3 times
-    add a               ;  ...
-    add $10+OBJ_Y_OFFSET ; Add the sprite offset ($10), plus the centering offset
-    ld [hli], a         ; Store the sprite's Y coordinate in shadow OAM
-    ld b, a             ; Cache the Y coordinate in B for use by the second sprite
-    ld a, 41            ; Load the initial X coordinate of the player
-    add a               ; Multiply the X coordinate by 8 the same as we did for Y above
-    add a               ;  ...
-    add a               ;  ...
-    add $08+OBJ_X_OFFSET ; Add the sprite offset ($08), plus the centering offset
-    ld [hli], a         ; Store the sprite's X coordinate in shadow OAM
-    add $08             ; Add 8 to the X coordinate for the second sprite
-    ld c, a             ; Cache the X coordinate in C for use by the second sprite
-    ld a, [wPlayer.facing] ; Load the player's facing direction into A
-    add a               ; The player tiles have been stored in VRAM such that the facing direction multiplied
-    add a               ;  by 4 will yield the tile ID for the first sprite, so multiply by 4 using adds
-    ld [hli], a         ; Store the sprite's tile ID in shadow OAM
-    add 2               ; Add 2 to the tile ID for the second sprite
-    ld d, a             ; Cache the tile ID in D for use by the second sprite
-    xor a               ; Set A to zero
-    ld [hli], a         ; Store the sprite's attributes in shadow OAM
-
-    ; Second sprite
-    ld a, b             ; Load the prepared Y coordinate from B to A
-    ld [hli], a         ; Store the sprite's Y coordinate in shadow OAM
-    ld a, c             ; Load the prepared X coordinate from C to A
-    ld [hli], a         ; Store the sprite's X coordinate in shadow OAM
-    ld a, d             ; Load the prepared tile ID from D to A
-    ld [hli], a         ; Store the sprite's tile ID in shadow OAM
-    xor a               ; Set A to zero
-    ld [hli], a         ; Store the sprite's attributes in shadow OAM
-
-    ; Zero the remaning shadow OAM entries
-    ; Note: Since we're only using 2/40 sprites, we could just loop 38 times, but the following approach will scale better if
-    ;  additional sprites are added. This will also clear previously used entires in cases where the number of sprites used
-    ;  each frame varies (which isn't the case here).
-    ld b, a             ; Load zero (from the prior use) into B, since A will be used to check loop completion
-.clearOAM
-    ld [hl], b          ; Set the Y coordinate of this OAM entry to zero to hide it
-    inc l               ; Advance 4 bytes to the next OAM entry
-    inc l               ;  ...
-    inc l               ;  ...
-    inc l               ;  ...
-    ld a, l             ; Load the low byte of the shadow OAM pointer into A
-    cp LOW(wShadowOAM.end) ; Compare the low byte to the end of wShadowoAM
-    jr nz, .clearOAM    ; Loop until we've hidden every unused sprite
-    
-    ret
 
 ;============================================================================================================================
 ; Utility Routines
@@ -409,8 +363,8 @@ SECTION "Tile/Tilemap Data", ROMX
 ; Obj tiles based on "Micro Character Bases" by Kacper Woźniak (https://thkaspar.itch.io/micro-character-bases)
 ; Licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
 ; Skeleton tiles adjusted to 3-shade, and additional facing directions created based on the original art
-SpriteTileData:
-    incbin "gfx/grid-collision-obj-ztiles.2bpp"
+PlayerTileData:
+    incbin "gfx/player.2bpp"
 .end
 
 ; BG tiles based on "Dungeon Package" tileset by nyk-nck (https://nyknck.itch.io/dungeonpack)
