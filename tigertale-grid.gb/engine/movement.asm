@@ -42,8 +42,9 @@ ProcessInput:
 
     ; Player is moving, do any animation or updates here if needed
     ; ...
-        ; it seems working here so dito muna to
-        call CheckTimer
+
+    ; it seems working here so dito muna to
+    call CheckTimer
     ret
 
 
@@ -100,4 +101,21 @@ MoveCamera:
     add a               ;  by 8, which can be done quickly by adding A to itself 3 times
     add a               ;  ...
     ld [rSCY], a                ; Store the result in SCX
+    ret
+
+CheckDirectionChange:
+    ld hl, previousDir
+    ld a, [wPlayer.facing]    ; Load the current facing direction into A
+
+    cp [hl]           ; Compare with the previous facing direction
+    jr z, .noChange           ; Jump if they are the same
+
+    ; Direction has changed, update prevFacing and perform necessary actions
+    ld [previousDir], a        ; Store the new facing direction
+
+
+    ret
+
+.noChange
+    ; ... rest of your code ...
     ret

@@ -1,48 +1,73 @@
 SECTION "Timer", ROM0
 
 ; This subroutine increments the timer counter and checks if a certain time has passed
-; You can modify the timing condition here
 LoopTimer:
-    ; Check if Timer has started
-    ld a, [hasStarted]
-    cp 1
+    ; Check if Timer has if movementState is Moving to enable timer
+    ld a, [movementState]
+    cp MOVEMENT_MOVING
     jr nz, .skip
 
     ; Actual Timer
     ld a, [timerCounter]
     inc a
     ld [timerCounter], a
+
+    ; call UpdateWalkCounter
+
 .skip
     ret
 
 CheckTimer:
-    ld a, [hasStarted]
-    cp 1
-    jr nz, .startTimer      ; If not equal to 1 then timer is still off
-
+    ; Check for animating sprites
+    ld hl, animationFrameCounter
     ld a, [timerCounter]
-    cp 15
+    cp [hl]
+    jr c, .notYetAnimating
+
+    ; Update walk counter - increment then return to 0 after
+    call UpdateStepCounter
+    
+    ;Add the Frame Counter so we can check the next frame where we will animate the sprite
+    ld a, [animationFrameCounter]
+    add ANIMATION_SPEED
+    ld [animationFrameCounter], a
+    
+
+.notYetAnimating
+    ; Check for resetting movement cooldown
+    
+    ld a, [timerCounter]
+    cp MOVE_SPEED
     jr c, .notYetReached
 
-    ; Timer is finished
+    call ResetAnimationCount
+
+.notYetReached
+    ret
+
+UpdateStepCounter:
+    ld a, [stepCounter]     ; Load the current value of stepCounter
+    inc a                    ; Increment the value
+    cp 4                     ; Compare with 3
+    jr nz, .notReached3      ; Jump if not equal to 3
+    ld a, 0                  ; Reset to 0 if equal to 3
+.notReached3
+    ld [stepCounter], a      ; Store the updated value back
+    ret
+
+ResetAnimationCount:
     ld a, MOVEMENT_IDLE
     ld [movementState], a
-    ; Reset the hasStarted
-    ld a, 0
-    ld [hasStarted], a
 
     ld a, 0
     ld [timerCounter], a
 
-    ret
+    ld a, 0
+    ld [stepCounter], a 
 
-.startTimer
-    xor a
-    ld a, 1
-    ld [hasStarted], a
+    ld a, [ANIMATION_SPEED]
+    ld [animationFrameCounter], a
 
-
-.notYetReached
     ret
 
 ; ; Call this subroutine every VBlank to update the timer

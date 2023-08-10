@@ -14,55 +14,17 @@
 ;  such that walkable tiles start at 0 and are sequential to simplify the collision check.
 
 include "hardware.inc"  ; Include hardware definitions so we can use nice names for things
+include "engine/constants.inc"  
+include "engine/variables.asm"  ; Include hardware definitions so we can use nice names for things
 include "engine/movement.asm"  ; Include hardware definitions so we can use nice names for things
 include "engine/player_animations.asm"  ; Include hardware definitions so we can use nice names for things
 include "engine/background_tilemap.asm"
 include "engine/timer.asm"
 INCLUDE "math.asm"
 
-;============================================================================================================================
-; Game Constants
-;============================================================================================================================
+; Declare Constants
+; Declare Variables
 
-def MAX_WALKABLE_TILE_ID equ 8  ; All tiles from 0 to this tile ID will be considered walkable for the purposes of collision
-
-def OBJ_Y_OFFSET equ -9         ; Since we're using two objects to draw the player larger than 8x8, but we're still moving
-def OBJ_X_OFFSET equ -4         ;  on an 8x8 grid, we offset things slightly to center the player on the current tile
-
-rsreset                         ; Reset the _RS counter to 0 for a new set of defines
-def FACE_LEFT   EQU 2            ; Define FACE_LEFT as 2
-def FACE_RIGHT  EQU 3            ; Define FACE_RIGHT as 2
-def FACE_UP     EQU 1            ; Define FACE_UP as 1
-def FACE_DOWN   EQU 0            ; Define FACE_DOWN as 0
-
-;============================================================================================================================
-; Game State Variables
-;============================================================================================================================
-
-SECTION "Game State Variables", WRAM0
-
-movementState:   ds 1    ; Define a 1-byte variable to store the movement state
-timerCounter:   ds 1  ; Define a variable to store the timer counter
-hasStarted:     ds 1
-
-walkCounter: ds 1 ; 
-
-; Define Movement States
-MOVEMENT_IDLE EQU 0
-MOVEMENT_MOVING EQU 1
-
-; Cooldown Value (in frames) for transitioning to idle state after movement
-COOLDOWN_FRAMES EQU 60   ; 30 frames (assuming 60 frames per second) = 0.5 seconds
-
-
-; This would hold the position and orientation values of the player
-wPlayer:
-.y              ds 1    ; Player's Y coordinate (in grid space)
-.x              ds 1    ; Player's X coordinate (in grid space)
-.facing         ds 1    ; Player's facing direction (0=left, 1=right, 2=up, 3=down)
-
-SECTION "Counter", WRAM0
-wFrameCounter: db
 
 ;============================================================================================================================
 ; Interrupts
@@ -148,13 +110,27 @@ EntryPoint:
 
     ldh [hCurrentKeys], a ; Zero our current keys just to be safe (A is already zero from earlier)
 
+    ; Initialize the previous dir
+    ld a, FACE_DOWN
+    ld [previousDir], a
+
+
     ; Movement Timer (initialized with 0)
     ld a, 0
     ld [movementTimer], a
 
-    ; OnCooldown
+    ; Sprite tile (initialized with 0)
     ld a, 0
-    ld [hasStarted], a
+    ld [playerSpriteTile], a
+
+
+    ; Animation Frame Counter Timer (initialized with ANIMATION_SPEED)
+    ld a, [ANIMATION_SPEED]
+    ld [animationFrameCounter], a
+
+    ; Animation Frame Counter Timer (initialized with ANIMATION_SPEED)
+    ld a, [MOVE_SPEED]
+    ld [movementFrameCounter], a
 
     ; Initialize Movement State
     ld a, MOVEMENT_IDLE

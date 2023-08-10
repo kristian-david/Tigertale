@@ -26,37 +26,20 @@ PopulateShadowOAM:
     ld [hli], a         ; Store the sprite's X coordinate in shadow OAM
     add $08             ; Add 8 to the X coordinate for the second sprite
     ld c, a             ; Cache the X coordinate in C for use by the second sprite
-    ld a, [wPlayer.facing] ; Load the player's facing direction into A
 
-    ; Check if facing right
-    cp FACE_RIGHT
-    jr nz, .noFlip
-    ld a, FACE_LEFT     ; Change sprite to FACE_LEFT since we will just flip this
+    ; If player is not moving then just use the idle sprites
+    ld a, [movementState]
+    cp MOVEMENT_MOVING
+    jp nz, .skipAnimation
 
-.noFlip
-    add a               ; The player tiles have been stored in VRAM such that the facing direction multiplied
-    add a               ;  by 4 will yield the tile ID for the first sprite, so multiply by 4 using adds
-    ld [hli], a         ; Store the sprite's tile ID in shadow OAM
-    add 2               ; Add 2 to the tile ID for the second sprite
-    ld d, a             ; Cache the tile ID in D for use by the second sprite
-    xor a               ; Set A to zero
-    ld [hli], a         ; Store the sprite's attributes in shadow OAM
+    call AnimateSprite
+    jr .spriteUpdateFinished
 
-    ; Second sprite - Left Side
-    ld a, b             ; Load the prepared Y coordinate from B to A
-    ld [hli], a         ; Store the sprite's Y coordinate in shadow OAM
-    ld a, c             ; Load the prepared X coordinate from C to A
-    ld [hli], a         ; Store the sprite's X coordinate in shadow OAM
-    ld a, d             ; Load the prepared tile ID from D to A
-    ld [hli], a         ; Store the sprite's tile ID in shadow OAM
-    xor a               ; Set A to zero
-    ld [hli], a         ; Store the sprite's attributes in shadow OAM
+.skipAnimation
+    call UseIdleSprite
+    jr .spriteUpdateFinished
 
-    xor a
-    ld a, [wPlayer.facing] ; Load the player's facing direction into A
-    cp FACE_LEFT           ; Compare it with the value for facing left
-    jr nz, .flipRight  ; If not facing left, skip the flipping code
-    jp .flipLeft ; Call the function to flip the first sprite horizontally
+.spriteUpdateFinished
 
     ; Zero the remaning shadow OAM entries
     ; Note: Since we're only using 2/40 sprites, we could just loop 38 times, but the following approach will scale better if
@@ -75,7 +58,141 @@ PopulateShadowOAM:
     
     ret
 
-.flipLeft
+AnimateSprite:
+
+    ld a, [wPlayer.facing] ; Load the player's facing direction into A
+
+    cp FACE_RIGHT
+    jr z, AnimateHorizontally
+    cp FACE_LEFT
+    jr z, AnimateHorizontally
+
+    ; No need to check vertically since if it aint horizontal then it's vertical
+    jr AnimateVertically
+    ret
+
+AnimateVertically:
+    ; If stepCounter is on step 1 and 3 then use the animated sprite
+    ld a, [stepCounter] ; Load the player's facing direction into A
+    cp 1
+    jr z, .useAnimatedSprite
+
+    ld a, [stepCounter] ; Load the player's facing direction into A
+    cp 3
+    jr z, .useAnimatedSprite
+
+    ; Use IdleSprite
+    ld a, [wPlayer.facing] ; Load the player's facing direction into A
+    ld [playerSpriteTile], a
+    jp .updateSprite
+
+.useAnimatedSprite              ; Use the animated walking sprite
+    ld a, [wPlayer.facing] ; Load the player's facing direction into A
+    ; Check if facing right to give the final sprite for LEFT-RIGHT
+    cp FACE_UP
+    jr nz, .useFacingDownAnimated
+    ld a, 4     ; UseFacingUpAnimated
+    jp .updateSprite
+
+.useFacingDownAnimated
+    ld a, 3
+    
+.updateSprite
+    ld [playerSpriteTile], a
+    call UpdateSprite
+
+    ;The sprite would be flipped to the left on step 1, other steps either idle or walk sprite are flipped to the right
+    xor a
+    ld a, [stepCounter] ; Load the player's facing direction into A
+    cp 1           ; Compare it with the value for facing left
+    jp nz, FlipRight  ; If not facing left, skip the flipping code
+    jp FlipLeft ; Call the function to flip the first sprite horizontally
+    ret
+
+AnimateHorizontally:
+
+    ; If stepCounter is on step 1 and 3 then use the animated sprite
+    ld a, [stepCounter] ; Load the player's facing direction into A
+    cp 1
+    jr z, .useAnimatedSprite
+
+    ld a, [stepCounter] ; Load the player's facing direction into A
+    cp 3
+    jr z, .useAnimatedSprite
+
+    ; default idle sprite is stated by wPlayer.facing
+    ld a, [wPlayer.facing] ; Load the player's facing direction into A
+    ; Check if facing right to give the final sprite for LEFT-RIGHT
+    cp FACE_RIGHT
+    jr nz, .skip
+    ld a, FACE_LEFT     ; Change sprite to FACE_LEFT since we will just flip this
+
+.skip                           ; Use the default idle sprite
+    jp .updateSprite
+
+.useAnimatedSprite              ; Use the animated walking sprite
+    ld a, 5
+
+.updateSprite
+    ld [playerSpriteTile], a
+    call UpdateSprite
+
+    xor a
+    ld a, [wPlayer.facing] ; Load the player's facing direction into A
+    cp FACE_LEFT           ; Compare it with the value for facing left
+    jr nz, FlipRight  ; If not facing left, skip the flipping code
+    jp FlipLeft ; Call the function to flip the first sprite horizontally
+    ret
+
+;For removal if di naman need for setting idle sprite after going into grid
+UseIdleSprite:
+    ld a, [wPlayer.facing] ; Load the player's facing direction into A
+    ld [playerSpriteTile], a
+    
+    cp FACE_RIGHT
+    jr nz, .skip
+    ld a, FACE_LEFT     ; Change sprite to FACE_LEFT since we will just flip this
+
+.skip                           ; Use the default idle sprite
+    ld [playerSpriteTile], a
+    
+    call UpdateSprite
+
+    xor a
+    ld a, [wPlayer.facing] ; Load the player's facing direction into A
+    cp FACE_LEFT           ; Compare it with the value for facing left
+    jp nz, FlipRight  ; If not facing left, skip the flipping code
+    jp FlipLeft ; Call the function to flip the first sprite horizontally
+    ret
+
+UpdateSprite:
+    ; playerSpriteTile holds the actual sprite tile that will be shown
+    ld a, [playerSpriteTile]
+    add a               ; The player tiles have been stored in VRAM such that the facing direction multiplied
+    add a               ;  by 4 will yield the tile ID for the first sprite, so multiply by 4 using adds
+    ld [hli], a         ; Store the sprite's tile ID in shadow OAM
+    add 2               ; Add 2 to the tile ID for the second sprite
+    ld d, a             ; Cache the tile ID in D for use by the second sprite
+    xor a               ; Set A to zero
+    ld [hli], a         ; Store the sprite's attributes in shadow OAM
+
+    ; Second sprite - Left Side
+    ld a, b             ; Load the prepared Y coordinate from B to A
+    ld [hli], a         ; Store the sprite's Y coordinate in shadow OAM
+    ld a, c             ; Load the prepared X coordinate from C to A
+    ld [hli], a         ; Store the sprite's X coordinate in shadow OAM
+    ld a, d             ; Load the prepared tile ID from D to A
+    ld [hli], a         ; Store the sprite's tile ID in shadow OAM
+    xor a               ; Set A to zero
+    ld [hli], a         ; Store the sprite's attributes in shadow OAM
+
+    ret
+
+;============================================================================================================================
+; Flips
+;============================================================================================================================
+
+FlipLeft:
     ; 1st Sprite
     ld   a, %00000000           ; Clear the flip
     ld   [wShadowOAM + 3], a    ; flip the sprite horizontally
@@ -86,7 +203,7 @@ PopulateShadowOAM:
     ld   [wShadowOAM + 7], a    ; flip the sprite horizontally
     ret                 ; Return from the function
 
-.flipRight
+FlipRight:
     ; 1st Sprite
     ld a, b                     ; b contains the x position
     sub OBJ_X_OFFSET            ; 1st sprite is in right side, subtracting the offset puts it to left
@@ -105,6 +222,3 @@ PopulateShadowOAM:
     ld   a,OAMF_XFLIP
     ld   [wShadowOAM + 7], a    ; flip the sprite horizontally
     ret                 ; Return from the function
-
-UpdateSprite:
-
