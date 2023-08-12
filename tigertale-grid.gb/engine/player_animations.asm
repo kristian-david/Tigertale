@@ -27,19 +27,8 @@ PopulateShadowOAM:
     add $08             ; Add 8 to the X coordinate for the second sprite
     ld c, a             ; Cache the X coordinate in C for use by the second sprite
 
-    ; If player is not moving then just use the idle sprites
-    ld a, [movementState]
-    cp MOVEMENT_MOVING
-    jp nz, .skipAnimation
 
     call AnimateSprite
-    jr .spriteUpdateFinished
-
-.skipAnimation
-    call UseIdleSprite
-    jr .spriteUpdateFinished
-
-.spriteUpdateFinished
 
     ; Zero the remaning shadow OAM entries
     ; Note: Since we're only using 2/40 sprites, we could just loop 38 times, but the following approach will scale better if
@@ -141,27 +130,6 @@ AnimateHorizontally:
     ld a, [wPlayer.facing] ; Load the player's facing direction into A
     cp FACE_LEFT           ; Compare it with the value for facing left
     jr nz, FlipRight  ; If not facing left, skip the flipping code
-    jp FlipLeft ; Call the function to flip the first sprite horizontally
-    ret
-
-;For removal if di naman need for setting idle sprite after going into grid
-UseIdleSprite:
-    ld a, [wPlayer.facing] ; Load the player's facing direction into A
-    ld [playerSpriteTile], a
-    
-    cp FACE_RIGHT
-    jr nz, .skip
-    ld a, FACE_LEFT     ; Change sprite to FACE_LEFT since we will just flip this
-
-.skip                           ; Use the default idle sprite
-    ld [playerSpriteTile], a
-    
-    call UpdateSprite
-
-    xor a
-    ld a, [wPlayer.facing] ; Load the player's facing direction into A
-    cp FACE_LEFT           ; Compare it with the value for facing left
-    jp nz, FlipRight  ; If not facing left, skip the flipping code
     jp FlipLeft ; Call the function to flip the first sprite horizontally
     ret
 

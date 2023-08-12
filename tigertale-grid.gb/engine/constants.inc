@@ -14,7 +14,7 @@ def OBJ_X_OFFSET equ -4         ;  on an 8x8 grid, we offset things slightly to 
 ;Facing Directions
 rsreset                         ; Reset the _RS counter to 0 for a new set of defines
 def FACE_LEFT   EQU 2            ; Define FACE_LEFT as 2
-def FACE_RIGHT  EQU 3            ; Define FACE_RIGHT as 2
+def FACE_RIGHT  EQU 3            ; Define FACE_RIGHT as 3
 def FACE_UP     EQU 1            ; Define FACE_UP as 1
 def FACE_DOWN   EQU 0            ; Define FACE_DOWN as 0
 
@@ -22,5 +22,6 @@ def FACE_DOWN   EQU 0            ; Define FACE_DOWN as 0
 MOVEMENT_IDLE EQU 0
 MOVEMENT_MOVING EQU 1
 
-MOVE_SPEED EQU 60               ; Either 15 or 30
-ANIMATION_SPEED EQU 15          ; MOVE_SPEED /3
+MOVE_SPEED EQU 41               ; Either 15 or 30
+CAMERA_SPEED EQU 5               ; MOVE_SPEED/8
+ANIMATION_SPEED EQU 7          ; MOVE_SPEED /3 (15 dapat to)

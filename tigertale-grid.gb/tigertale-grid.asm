@@ -105,7 +105,7 @@ EntryPoint:
     ; Set the scroll position of the camera
     ld a, -56             ; Load the desired X coordinate into A
     ldh [rSCX], a       ; Set the horizontal camera position (SCX) to the desired X coordinate
-    ld a, -36             ; Load the desired Y coordinate into A
+    ld a, -40             ; Load the desired Y coordinate into A
     ldh [rSCY], a       ; Set the vertical camera position (SCY) to the desired Y coordinate
 
     ldh [hCurrentKeys], a ; Zero our current keys just to be safe (A is already zero from earlier)
@@ -114,27 +114,8 @@ EntryPoint:
     ld a, FACE_DOWN
     ld [previousDir], a
 
+    call InitializeVariables
 
-    ; Movement Timer (initialized with 0)
-    ld a, 0
-    ld [movementTimer], a
-
-    ; Sprite tile (initialized with 0)
-    ld a, 0
-    ld [playerSpriteTile], a
-
-
-    ; Animation Frame Counter Timer (initialized with ANIMATION_SPEED)
-    ld a, [ANIMATION_SPEED]
-    ld [animationFrameCounter], a
-
-    ; Animation Frame Counter Timer (initialized with ANIMATION_SPEED)
-    ld a, [MOVE_SPEED]
-    ld [movementFrameCounter], a
-
-    ; Initialize Movement State
-    ld a, MOVEMENT_IDLE
-    ld [movementState], a   ; Initialize movementState with MOVEMENT_IDLE
 
     ; Initialize shadow OAM to zero
     ld hl, wShadowOAM   ; Point HL to the start of shadow OAM
@@ -158,9 +139,9 @@ EntryPoint:
     ld [hli], a         ; Set the starting wPlayer.facing value in WRAM
 
     ; Center the player sprite
-    ld a, 4             ; Load the new X coordinate into A
+    ld a, 2             ; Load the new X coordinate into A
     ld [wPlayer.x], a   ; Store the new X coordinate in memory
-    ld a, 2             ; Load the new Y coordinate into A
+    ld a, 3             ; Load the new Y coordinate into A
     ld [wPlayer.y], a   ; Store the new Y coordinate in memory
 
     ; Setup the VBlank interrupt
@@ -175,19 +156,25 @@ EntryPoint:
     ldh [rLCDC], a      ; Enable and configure the LCD to show the background and objects
 
 ;============================================================================================================================
+; Initialize
+;============================================================================================================================
+
+    call PopulateShadowOAM          ; Initialize Sprite
+
+;============================================================================================================================
 ; Main Loop
 ;============================================================================================================================
 
 LoopForever:
-    halt                ; Halt the CPU, waiting until an interrupt fires (this will sync our loop with VBlank)
+    HALT                ; Halt the CPU, waiting until an interrupt fires (this will sync our loop with VBlank)
 
-    call UpdateJoypad   ; Poll the joypad and store the state in HRAM
-    call ProcessInput   ; Update the game state in response to user input
-    call PopulateShadowOAM ; Update the sprite locations for the next frame
+    CALL UpdateJoypad   ; Poll the joypad and store the state in HRAM
+    CALL ProcessInput   ; Update the game state in response to user input
+    ; call MoveCamera
 
-    call LoopTimer
-
-    jr LoopForever      ; Loop forever
+    CALL LoopTimer
+    
+    JR LoopForever      ; Loop forever
 
 
 ;============================================================================================================================

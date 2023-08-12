@@ -44,7 +44,7 @@ ProcessInput:
     ; ...
 
     ; it seems working here so dito muna to
-    call CheckTimer
+    ; call CheckTimer
     ret
 
 
@@ -83,39 +83,69 @@ ProcessInput:
     ld a, c             ; Load the new X coordinate into A
     ld [wPlayer.x], a   ; Store the new X coordinate in memory
 
-    call MoveCamera
+    ret
 
 
 MoveCamera:
-    ; Move the screen along with the player
+    ld hl, camMoveProgress
+
     ld a, [wPlayer.x]   ; Load current X position of player
     add 23              ; Camera offset
     add a               ; To convert the Y grid coordinate into screen coordinates we have to multiply
     add a               ;  by 8, which can be done quickly by adding A to itself 3 times
     add a               ;  ...
-    ld [rSCX], a        ; Store the converted result in SCX
+    ld b, a
 
+    ld a, [wPlayer.facing]
+    cp FACE_RIGHT
+    jr z, .moveRight
+    cp FACE_LEFT
+    jr z, .moveLeft
+
+    jr .vertical
+
+.moveLeft
+    ld a, b
+    add 8
+    sbc [hl]
+    jr .setCamX
+
+.moveRight
+    ld a, b
+    sub 8
+    add [hl]
+
+.setCamX
+    ld [rSCX], a        ; Store the converted result in SCX
+    jp .done
+
+.vertical
     ld a, [wPlayer.y]   ; Load current Y position of player
     sub 40              ; Camera offset
-    add a               ; To convert the Y grid coordinate into screen coordinates we have to multiply
-    add a               ;  by 8, which can be done quickly by adding A to itself 3 times
-    add a               ;  ...
-    ld [rSCY], a                ; Store the result in SCX
+    add a               ; Convert Y grid coordinate into screen coordinates
+    add a               ; Multiply by 8 (add A to itself 3 times)
+    add a               ; ...
+    ld b, a
+
+    ld a, [wPlayer.facing]
+    cp FACE_DOWN
+    jr z, .moveDown
+
+; If not horizontal and not down then it's automatically up
+.moveUp
+    ld a, b
+    add 8
+    sbc [hl]
+    jr .setCamY
+
+.moveDown
+    ld a, b
+    sub 8
+    add [hl]
+
+.setCamY
+    ld [rSCY], a        ; Store the converted result in SCX
+
+.done
     ret
 
-CheckDirectionChange:
-    ld hl, previousDir
-    ld a, [wPlayer.facing]    ; Load the current facing direction into A
-
-    cp [hl]           ; Compare with the previous facing direction
-    jr z, .noChange           ; Jump if they are the same
-
-    ; Direction has changed, update prevFacing and perform necessary actions
-    ld [previousDir], a        ; Store the new facing direction
-
-
-    ret
-
-.noChange
-    ; ... rest of your code ...
-    ret
