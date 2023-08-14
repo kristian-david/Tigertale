@@ -15,11 +15,13 @@
 
 include "hardware.inc"  ; Include hardware definitions so we can use nice names for things
 include "engine/constants.inc"  
-include "engine/variables.asm"  ; Include hardware definitions so we can use nice names for things
-include "engine/movement.asm"  ; Include hardware definitions so we can use nice names for things
-include "engine/player_animations.asm"  ; Include hardware definitions so we can use nice names for things
+include "engine/variables.asm" 
+include "engine/movement.asm"
+include "engine/player_oam.asm" 
+include "engine/sprite_oam.asm"
 include "engine/background_tilemap.asm"
 include "engine/timer.asm"
+include "utilities/clear_oam.asm"  
 INCLUDE "math.asm"
 
 ; Declare Constants
@@ -89,6 +91,12 @@ EntryPoint:
     ld bc, PlayerTileData.end - PlayerTileData ; Load the number of bytes to copy into BC
     call MemCopy        ; Call our general-purpose memory copy routine
 
+    ; Copy our sprite and background tiles to VRAM
+    ld hl, NpcTileData ; Load the source address of our tiles into HL
+    ld de, _VRAM        ; Load the destination address in VRAM into DE
+    ld bc, NpcTileData.end - NpcTileData ; Load the number of bytes to copy into BC
+    call MemCopy        ; Call our general-purpose memory copy routine
+
     ld hl, BackgroundTileData ; Load the source address of our tiles into HL
     ld de, _VRAM+$1000  ; Load the destination address in VRAM into DE
     ld bc, BackgroundTileData.end - BackgroundTileData ; Load the number of bytes to copy into BC
@@ -110,39 +118,30 @@ EntryPoint:
 
     ldh [hCurrentKeys], a ; Zero our current keys just to be safe (A is already zero from earlier)
 
-    ; Initialize the previous dir
-    ld a, FACE_DOWN
-    ld [previousDir], a
-
     call InitializeVariables
 
 
-    ; Initialize shadow OAM to zero
-    ld hl, wShadowOAM   ; Point HL to the start of shadow OAM
-    ld b, wShadowOAM.end - wShadowOAM ; Load the size of shadow OAM into B (it's less than 256 so we can use a single byte)
-.clearOAM
-    ld [hli], a         ; Zero this OAM byte
-    dec b               ; Decrement the loop counter in B (bytes of OAM)
-    jr nz, .clearOAM    ; If B isn't zero, continue zeroing bytes
+    ;When the GAMEBOY™ is powered on, OAM is filled with semi-random values so remove that
+    call ClearOAM
 
-    ; Perform OAM DMA once to ensure OAM doesn't contain garbage
-    ld a, HIGH(wShadowOAM) ; Load the high byte of our Shadow OAM buffer into A
-    call hOAMDMA         ; Call our OAM DMA routine (in HRAM), quickly copying from wShadowOAM to OAMRAM
-
-    ; Setup the world state
+    ; Setup the direction and supposed positions of the player
     ld hl, wPlayer      ; Point HL to the start of the player's state in WRAM
-    ld a, 4             ; Load the starting Y coordinate into A
+    ld a, 3             ; Load the starting Y coordinate into A
     ld [hli], a         ; Set the starting wPlayer.y value in WRAM
     ld a, 2             ; Load the starting X coordinate into A
     ld [hli], a         ; Set the starting wPlayer.x value in WRAM
     ld a, FACE_DOWN     ; Load the starting facing direction into A
     ld [hli], a         ; Set the starting wPlayer.facing value in WRAM
 
-    ; Center the player sprite
-    ld a, 2             ; Load the new X coordinate into A
-    ld [wPlayer.x], a   ; Store the new X coordinate in memory
-    ld a, 3             ; Load the new Y coordinate into A
-    ld [wPlayer.y], a   ; Store the new Y coordinate in memory
+    ; Setup the direction and supposed positions of the player
+    ld hl, wNPC      ; Point HL to the start of the player's state in WRAM
+    ld a, 9             ; Load the starting Y coordinate into A
+    ld [hli], a         ; Set the starting wNPC.y value in WRAM
+    ld a, 3             ; Load the starting X coordinate into A
+    ld [hli], a         ; Set the starting wNPC.x value in WRAM
+    ld a, FACE_DOWN     ; Load the starting facing direction into A
+    ld [hli], a         ; Set the starting wNPC.facing value in WRAM
+
 
     ; Setup the VBlank interrupt
     ld a, IEF_VBLANK    ; Load the flag to enable the VBlank interrupt into A
@@ -160,6 +159,7 @@ EntryPoint:
 ;============================================================================================================================
 
     call PopulateShadowOAM          ; Initialize Sprite
+    call RenderNpcSprite
 
 ;============================================================================================================================
 ; Main Loop
@@ -173,7 +173,7 @@ LoopForever:
     ; call MoveCamera
 
     CALL LoopTimer
-    
+
     JR LoopForever      ; Loop forever
 
 
@@ -328,6 +328,11 @@ SECTION "Tile/Tilemap Data", ROMX
 ; Skeleton tiles adjusted to 3-shade, and additional facing directions created based on the original art
 PlayerTileData:
     incbin "gfx/player.2bpp"
+.end
+
+; Define the NPC's sprite data
+NpcTileData:
+    incbin "gfx/player.2bpp"  ; Replace with the actual NPC sprite data
 .end
 
 ; BG tiles based on "Dungeon Package" tileset by nyk-nck (https://nyknck.itch.io/dungeonpack)

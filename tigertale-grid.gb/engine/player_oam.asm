@@ -2,10 +2,6 @@ SECTION "Player Animation", ROM0
 
 ; Player animation
 
-; At the top of your code, define the variable
-
-
-
 ; Populate ShadowOAM with sprites based on the game state
 PopulateShadowOAM:
     ld hl, wShadowOAM   ; Point HL at the beginning of wShadowOAM   
@@ -61,12 +57,12 @@ AnimateSprite:
     ret
 
 AnimateVertically:
-    ; If stepCounter is on step 1 and 3 then use the animated sprite
-    ld a, [stepCounter] ; Load the player's facing direction into A
+    ; If animProgress is on step 1 and 3 then use the animated sprite
+    ld a, [animProgress] ; Load the player's facing direction into A
     cp 1
     jr z, .useAnimatedSprite
 
-    ld a, [stepCounter] ; Load the player's facing direction into A
+    ld a, [animProgress] ; Load the player's facing direction into A
     cp 3
     jr z, .useAnimatedSprite
 
@@ -92,7 +88,7 @@ AnimateVertically:
 
     ;The sprite would be flipped to the left on step 1, other steps either idle or walk sprite are flipped to the right
     xor a
-    ld a, [stepCounter] ; Load the player's facing direction into A
+    ld a, [animProgress] ; Load the player's facing direction into A
     cp 1           ; Compare it with the value for facing left
     jp nz, FlipRight  ; If not facing left, skip the flipping code
     jp FlipLeft ; Call the function to flip the first sprite horizontally
@@ -100,12 +96,12 @@ AnimateVertically:
 
 AnimateHorizontally:
 
-    ; If stepCounter is on step 1 and 3 then use the animated sprite
-    ld a, [stepCounter] ; Load the player's facing direction into A
+    ; If animProgress is on step 1 and 3 then use the animated sprite
+    ld a, [animProgress] ; Load the player's facing direction into A
     cp 1
     jr z, .useAnimatedSprite
 
-    ld a, [stepCounter] ; Load the player's facing direction into A
+    ld a, [animProgress] ; Load the player's facing direction into A
     cp 3
     jr z, .useAnimatedSprite
 

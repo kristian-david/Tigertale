@@ -2,11 +2,6 @@ SECTION "Movement", ROM0
 
 movementTimer: ds 0 ; 
 
-CamStartY: db 0  ; Starting X position for smooth camera movement
-CamStartX: db 0  ; Starting Y position for smooth camera movement
-CamEndY: db 0    ; Ending X position for smooth camera movement
-CamEndX: db 0    ; Ending Y position for smooth camera movement
-
 ; Process the user's inputs and update the game state accordingly
 ProcessInput:
     ldh a, [hCurrentKeys]      ; Load the newly pressed keys byte into A
@@ -53,6 +48,21 @@ ProcessInput:
 ; @param: C Delta X to apply to current player position
 ; @param: D New facing direction value to apply
 .attemptMove
+
+    ld hl, moveDir        ; Load the address of the variable moveDirection into HL
+    ld [hl], c            ; Store the lower byte of BC (register C) into moveDirection
+    inc hl                ; Increment HL to point to the next memory location
+    ld [hl], b            ; Store the upper byte of BC (register B) into the next memory location
+
+    ; Save value of BC
+    push bc
+
+    CALL UpdateNpcPosition
+
+    ; Load value of BC
+    pop bc
+    
+
     ld a, d             ; Move new facing direction from D to A
     ld [wPlayer.facing], a ; Store new facing direction regardless of move success
 
@@ -76,6 +86,7 @@ ProcessInput:
 
     ld a, MOVEMENT_MOVING
     ld [movementState], a
+    
 
     ; Store the new coordinates
     ld a, b             ; Load the new Y coordinate into A

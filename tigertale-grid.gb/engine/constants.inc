@@ -23,5 +23,5 @@ MOVEMENT_IDLE EQU 0
 MOVEMENT_MOVING EQU 1
 
 MOVE_SPEED EQU 41               ; Either 15 or 30
-CAMERA_SPEED EQU 5               ; MOVE_SPEED/8
-ANIMATION_SPEED EQU 7          ; MOVE_SPEED /3 (15 dapat to)
+CAM_SPEED EQU 5               ; MOVE_SPEED/8
+ANIM_SPEED EQU 7          ; MOVE_SPEED /3 (15 dapat to)

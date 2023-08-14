@@ -1,4 +1,3 @@
-
 SetTileMap:
 ; Copy our 20x18 tilemap to VRAM
     ld de, TilemapData  ; Load the source address of our tilemap into DE
