@@ -1,4 +1,4 @@
-SECTION "Static Sprite", ROM0
+SECTION "NPC Sprite", ROM0
 
 ; Set the attributes for the static sprite
 RenderNpcSprite:
@@ -8,8 +8,9 @@ RenderNpcSprite:
     ld d, a
 
     ; Set the Y coordinate
-    ld a, [wNPC.y]  ; Y = 40 (adjust this value as needed)
-    add 72              ; OFFSET
+    ld a, [wNPC.offsetY]  ; Y = 40 (adjust this value as needed)
+    add CAM_X_OFFSET 
+    sub 4
     add a               ; To convert the Y grid coordinate into screen coordinates we have to multiply
     add a               ;  by 8, which can be done quickly by adding A to itself 3 times
     add a               ;  ...
@@ -18,8 +19,9 @@ RenderNpcSprite:
     ld b, a                 ; Place a unto b since a will be used for comparing
 
     ; Set the X coordinate to the left of the screen
-    ld a, [wNPC.x]   ; X = 8
-    add 41
+    ld a, [wNPC.offsetX]   ; X = 8
+    add CAM_X_OFFSET
+    sub 2
     add a               ; Multiply the X coordinate by 8 the same as we did for Y above
     add a               ;  ...
     add a               ;  ...
@@ -51,8 +53,16 @@ RenderNpcSprite:
 
     ret
 
-; NPC Position in World space
+;============================================================================================================================
+; NPC Position shouldn't update in world space. only locally on the screen since the NPC is not moving but the player is.
+;============================================================================================================================
+
+
+; NPC Position in World space 
 UpdateNpcPosition:
+    ; Save value of BC
+    push bc
+    
     ld hl, moveDir  ; Load the address of the variable moveDirection into HL
     ld c, [hl]            ; Load the lower byte of moveDirection into register C
     inc hl                ; Increment HL to point to the next memory location
@@ -60,21 +70,24 @@ UpdateNpcPosition:
 
 
     ; Calculate the destination coordinates by applying the deltas
-    ld a, [wNPC.y]   ; Load the current player Y coordinate into A
+    ld a, [wNPC.offsetY]   ; Load the current player Y coordinate into A
     sub b               ; Add the dY value from B to get the new Y coordinate
     ld b, a             ; Store the new Y coordinate back in B
-    ld a, [wNPC.x]   ; Load the current player X coordinate into A
+    ld a, [wNPC.offsetX]   ; Load the current player X coordinate into A
     sub c               ; Add the dX value from C to get the new X coordinate
     ld c, a             ; Store the new Y coordinate back in C
 
     ; Store the new coordinates
     ld a, b             ; Load the new Y coordinate into A
-    ld [wNPC.y], a   ; Store the new Y coordinate in memory
+    ld [wNPC.offsetY], a   ; Store the new Y coordinate in memory
     ld a, c             ; Load the new X coordinate into A
-    ld [wNPC.x], a   ; Store the new X coordinate in memory
+    ld [wNPC.offsetX], a   ; Store the new X coordinate in memory
+
+    ; Restore value of BC
+    pop bc
     ret
 
-; Move NPC along with the bg when player moves
+; Move NPC along with the background when player moves
 MoveSprite:
     ld a, [wPlayer.facing]
     cp FACE_UP
@@ -121,9 +134,9 @@ MoveSprite:
     inc a                       ; Help NPC stay in place when player switches moving vertically-horizontally
     ld c, a                     ; Save X value to C
 
-.setPos
+.setPos:
     ld a, b
-    ld [hli], a
+    ld [hli], a             ; Store Y coordinate in shadow OAM
     ld a, c
-    ld [hli], a
+    ld [hli], a             ; Store X coordinate in shadow OAM
     ret

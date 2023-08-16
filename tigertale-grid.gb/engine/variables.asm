@@ -4,6 +4,13 @@
 
 SECTION "Game State Variables", WRAM0
 
+; we use 0 as the 'end of string' character
+TextString::
+    ds 16
+.end::
+    
+
+
 movementState:   ds 1    ; Define a 1-byte variable to store the movement state
 gameTick:   ds 1  ; Define a variable to store the timer counter
 
@@ -22,7 +29,7 @@ camFrameCounter: ds 1      ; used for keeping track of the time to allow movemen
 moveDir: ds 2               ; Vector containing the possible direction of player
 
 ; This would hold the position and orientation values of the player
-wPlayer:
+wPlayer:                ; To directly reference Y just use [wPlayer] since y is the starting byte itself
 .y              ds 1    ; Player's Y coordinate (in grid space)
 .x              ds 1    ; Player's X coordinate (in grid space)
 .facing         ds 1    ; Player's facing direction (0=left, 1=right, 2=up, 3=down)
@@ -32,6 +39,8 @@ wNPC:
 .y              ds 1    ; Player's Y coordinate (in grid space)
 .x              ds 1    ; Player's X coordinate (in grid space)
 .facing         ds 1    ; Player's facing direction (0=left, 1=right, 2=up, 3=down)
+.offsetY        ds 1    ; Offset to when player moves
+.offsetX        ds 1    ; Offset to when player moves
 
 SECTION "Counter", WRAM0
 wFrameCounter: db

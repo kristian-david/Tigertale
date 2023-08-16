@@ -11,6 +11,9 @@ def MAX_WALKABLE_TILE_ID equ 8  ; All tiles from 0 to this tile ID will be consi
 def OBJ_Y_OFFSET equ -9         ; Since we're using two objects to draw the player larger than 8x8, but we're still moving
 def OBJ_X_OFFSET equ -4         ;  on an 8x8 grid, we offset things slightly to center the player on the current tile
 
+def CAM_Y_OFFSET equ 72
+def CAM_X_OFFSET equ 41
+
 ;Facing Directions
 rsreset                         ; Reset the _RS counter to 0 for a new set of defines
 def FACE_LEFT   EQU 2            ; Define FACE_LEFT as 2

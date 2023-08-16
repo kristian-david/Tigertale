@@ -54,14 +54,6 @@ ProcessInput:
     inc hl                ; Increment HL to point to the next memory location
     ld [hl], b            ; Store the upper byte of BC (register B) into the next memory location
 
-    ; Save value of BC
-    push bc
-
-    CALL UpdateNpcPosition
-
-    ; Load value of BC
-    pop bc
-    
 
     ld a, d             ; Move new facing direction from D to A
     ld [wPlayer.facing], a ; Store new facing direction regardless of move success
@@ -73,6 +65,11 @@ ProcessInput:
     ld a, [wPlayer.x]   ; Load the current player X coordinate into A
     add c               ; Add the dX value from C to get the new X coordinate
     ld c, a             ; Store the new Y coordinate back in C
+
+    ; Check if there is NPC
+    call CheckForNPC      ; Call a routine to get the tile ID at the B=y, C=x coordinates
+    cp TRUE ; Compare the tile ID from TilemapData to the maximum walkable tile ID
+    ret z              ; If the tile ID is greater than the maximum walkable tile ID, return
 
     ; Check if the attempted move is valid
     call GetTileID      ; Call a routine to get the tile ID at the B=y, C=x coordinates
@@ -93,6 +90,8 @@ ProcessInput:
     ld [wPlayer.y], a   ; Store the new Y coordinate in memory
     ld a, c             ; Load the new X coordinate into A
     ld [wPlayer.x], a   ; Store the new X coordinate in memory
+
+    CALL UpdateNpcPosition
 
     ret
 

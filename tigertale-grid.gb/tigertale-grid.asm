@@ -1,12 +1,7 @@
-; Grid Collision Example for the Nintendo Game Boy
-; by Dave VanEe 2022
+; Tigertale, a homebrewed game for the Nintendo Game Boy
+; by Kristian Paolo P. David 2023
 ; Tested with RGBDS 0.6.0
 ; License: CC0 (https://creativecommons.org/publicdomain/zero/1.0/)
-
-; This example builds on the following examples:
-;  - background-tilemap (except using a manually constructed tilemap)
-;  - vblank/oamdma/sprite
-;  - joypad
 
 ; The main additions in this example are moving a player in response to input (ProcessInput), and checking the tilemap
 ;  entries to determine if attempted moves are into valid spaces based on tile ID (GetTileID). Note that instead of using an
@@ -17,12 +12,18 @@ include "hardware.inc"  ; Include hardware definitions so we can use nice names 
 include "engine/constants.inc"  
 include "engine/variables.asm" 
 include "engine/movement.asm"
+include "engine/movement_check.asm"
 include "engine/player_oam.asm" 
 include "engine/sprite_oam.asm"
-include "engine/background_tilemap.asm"
+include "engine/background_set.asm"
 include "engine/timer.asm"
+include "engine/tiles.asm"
 include "utilities/clear_oam.asm"  
-INCLUDE "math.asm"
+include "utilities/joypad.asm"
+include "utilities/load_assets.asm"  
+include "text/string_functions.asm"
+include "text/charmap.asm"
+include "math.asm"
 
 ; Declare Constants
 ; Declare Variables
@@ -85,23 +86,10 @@ EntryPoint:
     dec b               ; Decrement the loop counter in B
     jr nz, .oamdmaCopyLoop ; If B isn't zero, continue looping
 
-    ; Copy our sprite and background tiles to VRAM
-    ld hl, PlayerTileData ; Load the source address of our tiles into HL
-    ld de, _VRAM        ; Load the destination address in VRAM into DE
-    ld bc, PlayerTileData.end - PlayerTileData ; Load the number of bytes to copy into BC
-    call MemCopy        ; Call our general-purpose memory copy routine
-
-    ; Copy our sprite and background tiles to VRAM
-    ld hl, NpcTileData ; Load the source address of our tiles into HL
-    ld de, _VRAM        ; Load the destination address in VRAM into DE
-    ld bc, NpcTileData.end - NpcTileData ; Load the number of bytes to copy into BC
-    call MemCopy        ; Call our general-purpose memory copy routine
-
-    ld hl, BackgroundTileData ; Load the source address of our tiles into HL
-    ld de, _VRAM+$1000  ; Load the destination address in VRAM into DE
-    ld bc, BackgroundTileData.end - BackgroundTileData ; Load the number of bytes to copy into BC
-    call MemCopy        ; Call our general-purpose memory copy routine
-
+    call LoadSpriteTiles
+    call LoadFontTiles
+    call LoadBackgroundTiles
+    
     call SetTileMap
 
     ; Setup palettes and scrolling
@@ -109,6 +97,8 @@ EntryPoint:
     ldh [rBGP], a       ; Set the background palette
     ld a, %11010000     ; Define a 4-shade palette which omits the 10 value to increase player contrast
     ldh [rOBP0], a      ; Set an object palette
+    ld a, %11010000     ; Define a 4-shade palette which omits the 10 value to increase player contrast
+    ldh [rOBP1], a      ; Set an object palette
 
     ; Set the scroll position of the camera
     ld a, -56             ; Load the desired X coordinate into A
@@ -133,14 +123,19 @@ EntryPoint:
     ld a, FACE_DOWN     ; Load the starting facing direction into A
     ld [hli], a         ; Set the starting wPlayer.facing value in WRAM
 
-    ; Setup the direction and supposed positions of the player
+    ; Setup the direction and supposed positions of the npc
     ld hl, wNPC      ; Point HL to the start of the player's state in WRAM
-    ld a, 9             ; Load the starting Y coordinate into A
+    ld a, 5             ; 9 Load the starting Y coordinate into A
     ld [hli], a         ; Set the starting wNPC.y value in WRAM
-    ld a, 3             ; Load the starting X coordinate into A
+    ld a, 2             ; 3 Load the starting X coordinate into A
     ld [hli], a         ; Set the starting wNPC.x value in WRAM
     ld a, FACE_DOWN     ; Load the starting facing direction into A
     ld [hli], a         ; Set the starting wNPC.facing value in WRAM
+    ;OFFSET
+    ld a, 5             ; 9 Load the starting Y coordinate into A
+    ld [hli], a         ; Set the starting wNPC.y value in WRAM
+    ld a, 2             ; 3 Load the starting X coordinate into A
+    ld [hli], a         ; Set the starting wNPC.x value in WRAM
 
 
     ; Setup the VBlank interrupt
@@ -151,7 +146,7 @@ EntryPoint:
     ei                  ; enable interrupts!
 
     ; Combine flag constants defined in hardware.inc into a single value with logical ORs and load it into A
-    ld a, LCDCF_ON | LCDCF_BG8800 | LCDCF_BGON | LCDCF_OBJ16 | LCDCF_OBJON | LCDCF_WINOFF
+    ld a, LCDCF_ON | LCDCF_BG9800 | LCDCF_BGON | LCDCF_OBJ16 | LCDCF_OBJON | LCDCF_WINON | LCDCF_WIN9C00
     ldh [rLCDC], a      ; Enable and configure the LCD to show the background and objects
 
 ;============================================================================================================================
@@ -160,6 +155,8 @@ EntryPoint:
 
     call PopulateShadowOAM          ; Initialize Sprite
     call RenderNpcSprite
+
+    
 
 ;============================================================================================================================
 ; Main Loop
@@ -170,9 +167,12 @@ LoopForever:
 
     CALL UpdateJoypad   ; Poll the joypad and store the state in HRAM
     CALL ProcessInput   ; Update the game state in response to user input
-    ; call MoveCamera
 
     CALL LoopTimer
+
+    call ChangeText
+    
+
 
     JR LoopForever      ; Loop forever
 
@@ -182,37 +182,6 @@ LoopForever:
 ;============================================================================================================================
 
 SECTION "Main Routines", ROMX
-
-
-; Return the tile ID in TilemapData at provided coordinates
-; @param B: Y coordinate in tilemap
-; @param C: X coordinate in tilemap
-; @return A: Tile ID at coordinates given
-GetTileID:
-    push bc             ; Store the input coordinates on the stack
-    ld hl, TilemapData  ; Load the start address of the TilemapData into HL
-    ld a, 3             ; Load the Y coordinate into A
-    or a                ; Check if the Y coordinate is zero
-    jr z, .yZero        ; If zero, skip the Y seeking code
-    ld de, SCRN_X_B     ; Load the number of tiles per row of TilemapData into DE
-.yLoop
-    add hl, de          ; Add the number of tiles per row to the pointer in HL
-    dec b               ; Decrease the loop counter in B
-    jr nz, .yLoop       ; Loop until we've offset to the correct row
-.yZero
-
-    ld a, c             ; Load the X coordinate into A
-
-    ; Add the X coordinate offset to HL (this is a common way to add A to a 16-bit register)
-    add l               ; Add the X coordinate to the low byte of the pointer in HL
-    ld l, a             ; Store the new low byte of the pointer in L
-    adc h               ; Add H plus the carry flag to the contents of A
-    sub l               ; Subtract the contents of L from A
-    ld h, a             ; Store the new high byte of the pointer in H
-
-    ld a, [hl]          ; Read the value of TilemapData at the coordinates of interest into A
-    pop bc              ; Recover the original input coordinates from the stack
-    ret
 
 
 ;============================================================================================================================
@@ -235,58 +204,7 @@ MemCopy:
     jr nz, MemCopy      ; If B and C are both zero, OR B will be zero, otherwise keep looping
     ret                 ; Return back to where the routine was called from
 
-;============================================================================================================================
-; Joypad Handling
-;============================================================================================================================
 
-SECTION "Joypad Variables", HRAM
-; Reserve space in HRAM to track the joypad state
-hCurrentKeys:   ds 1    ; Current keys
-hNewKeys:       ds 1    ; Newly pressed keys
-
-SECTION "Joypad Routine", ROM0
-
-; Update the newly pressed keys (hNewKeys) and the held keys (hCurrentKeys) in memory
-; Note: This routine is written to be easier to understand, not to be optimized for speed or size
-UpdateJoypad:
-    ; Poll half the controller
-    ld a, P1F_GET_BTN   ; Load a flag into A to select reading the buttons
-    ldh [rP1], a        ; Write the flag to P1 to select which buttons to read
-    ldh a, [rP1]        ; Perform a few dummy reads to allow the inputs to stabilize
-    ldh a, [rP1]        ;  ...
-    ldh a, [rP1]        ;  ...
-    ldh a, [rP1]        ;  ...
-    ldh a, [rP1]        ;  ...
-    ldh a, [rP1]        ; The final read of the register contains the key state we'll use
-    or $f0              ; Set the upper 4 bits, and leave the action button states in the lower 4 bits
-    ld b, a             ; Store the state of the action buttons in B
-
-    ld a, P1F_GET_DPAD  ; Load a flag into A to select reading the dpad
-    ldh [rP1], a        ; Write the flag to P1 to select which buttons to read
-    call .knownRet      ; Call a known `ret` instruction to give the inputs to stabilize
-    ldh a, [rP1]        ; Perform a few dummy reads to allow the inputs to stabilize
-    ldh a, [rP1]        ;  ...
-    ldh a, [rP1]        ;  ...
-    ldh a, [rP1]        ;  ...
-    ldh a, [rP1]        ;  ...
-    ldh a, [rP1]        ; The final read of the register contains the key state we'll use
-    or $f0              ; Set the upper 4 bits, and leave the dpad state in the lower 4 bits
-
-    swap a              ; Swap the high/low nibbles, putting the dpad state in the high nibble
-    xor b               ; A now contains the pressed action buttons and dpad directions
-    ld b, a             ; Move the key states to B
-
-    ld a, P1F_GET_NONE  ; Load a flag into A to read nothing
-    ldh [rP1], a        ; Write the flag to P1 to disable button reading
-
-    ldh a, [hCurrentKeys] ; Load the previous button+dpad state from HRAM
-    xor b               ; A now contains the keys that changed state
-    and b               ; A now contains keys that were just pressed
-    ldh [hNewKeys], a   ; Store the newly pressed keys in HRAM
-    ld a, b             ; Move the current key state back to A
-    ldh [hCurrentKeys], a ; Store the current key state in HRAM
-.knownRet
-    ret
 
 ;============================================================================================================================
 ; OAM Handling
@@ -317,29 +235,4 @@ SECTION "OAM DMA", HRAM
 hOAMDMA:
     ds OAMDMA.end - OAMDMA
 
-;============================================================================================================================
-; Tile/Tilemap Data
-;============================================================================================================================
 
-SECTION "Tile/Tilemap Data", ROMX
-
-; Obj tiles based on "Micro Character Bases" by Kacper Woźniak (https://thkaspar.itch.io/micro-character-bases)
-; Licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
-; Skeleton tiles adjusted to 3-shade, and additional facing directions created based on the original art
-PlayerTileData:
-    incbin "gfx/player.2bpp"
-.end
-
-; Define the NPC's sprite data
-NpcTileData:
-    incbin "gfx/player.2bpp"  ; Replace with the actual NPC sprite data
-.end
-
-; BG tiles based on "Dungeon Package" tileset by nyk-nck (https://nyknck.itch.io/dungeonpack)
-; License for original assets not clearly specified, but not CC0. Attribution/link included here for completness.
-BackgroundTileData:
-    incbin "gfx/grid-collision-bg-tiles.2bpp"  ; Include binary tile data inline using incbin
-.end                                    ; The .end label is used to let the assembler calculate the length of the data
-
-TilemapData:
-    incbin "gfx/grid-collision.tilemap"     ; Include tilemap built using Tilemap Studio and the grid-collision-bg-tiles tileset

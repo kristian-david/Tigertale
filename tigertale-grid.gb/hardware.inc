@@ -72,8 +72,8 @@ ENDM
 ;***************************************************************************
 
 DEF _VRAM        EQU $8000 ; $8000->$9FFF
-DEF _SCRN0       EQU $9800 ; $9800->$9BFF
-DEF _SCRN1       EQU $9C00 ; $9C00->$9FFF
+DEF _SCRN0       EQU $9800 ; $9800->$9BFF   -BACKGROUND LAYER-
+DEF _SCRN1       EQU $9C00 ; $9C00->$9FFF   -WINDOW LAYER-
 DEF _SRAM        EQU $A000 ; $A000->$BFFF
 DEF _RAM         EQU $C000 ; $C000->$CFFF / $C000->$DFFF
 DEF _RAMBANK     EQU $D000 ; $D000->$DFFF

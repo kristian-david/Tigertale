@@ -7,14 +7,14 @@ PopulateShadowOAM:
     ld hl, wShadowOAM   ; Point HL at the beginning of wShadowOAM   
 
     ; First sprite - Right Side
-    ld a, 72            ; Load the initial Y coordinate of the player
+    ld a, CAM_Y_OFFSET  ; Load the initial Y coordinate of the player
     add a               ; To convert the Y grid coordinate into screen coordinates we have to multiply
     add a               ;  by 8, which can be done quickly by adding A to itself 3 times
     add a               ;  ...
     add $10+OBJ_Y_OFFSET ; Add the sprite offset ($10), plus the centering offset
     ld [hli], a         ; Store the sprite's Y coordinate in shadow OAM
     ld b, a             ; Cache the Y coordinate in B for use by the second sprite
-    ld a, 41            ; Load the initial X coordinate of the player
+    ld a, CAM_X_OFFSET  ; Load the initial X coordinate of the player
     add a               ; Multiply the X coordinate by 8 the same as we did for Y above
     add a               ;  ...
     add a               ;  ...
