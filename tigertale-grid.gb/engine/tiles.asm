@@ -21,5 +21,9 @@ TilemapData:
 
 SECTION "Font", ROM0
 FontData:
-    INCBIN "fonts/alphanum_compact.bin"
+        INCBIN "fonts/alphanum_gbstudio.2bpp"
+.end
+
+FrameData:
+        INCBIN "fonts/dialogue_frame.2bpp"
 .end

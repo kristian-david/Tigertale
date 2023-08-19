@@ -10,7 +10,7 @@ RenderNpcSprite:
     ; Set the Y coordinate
     ld a, [wNPC.offsetY]  ; Y = 40 (adjust this value as needed)
     add CAM_X_OFFSET 
-    sub 4
+    sub 4               ; Offset to synchronize world position with player
     add a               ; To convert the Y grid coordinate into screen coordinates we have to multiply
     add a               ;  by 8, which can be done quickly by adding A to itself 3 times
     add a               ;  ...
@@ -21,7 +21,7 @@ RenderNpcSprite:
     ; Set the X coordinate to the left of the screen
     ld a, [wNPC.offsetX]   ; X = 8
     add CAM_X_OFFSET
-    sub 2
+    sub 2               ; Offset to synchronize world position with player
     add a               ; Multiply the X coordinate by 8 the same as we did for Y above
     add a               ;  ...
     add a               ;  ...
@@ -52,11 +52,6 @@ RenderNpcSprite:
     ld [hli], a         ; Store the sprite's attributes in shadow OAM
 
     ret
-
-;============================================================================================================================
-; NPC Position shouldn't update in world space. only locally on the screen since the NPC is not moving but the player is.
-;============================================================================================================================
-
 
 ; NPC Position in World space 
 UpdateNpcPosition:
@@ -131,7 +126,7 @@ MoveSprite:
     add 8
 
 .setPosX
-    inc a                       ; Help NPC stay in place when player switches moving vertically-horizontally
+    ; inc a                       ; Help NPC stay in place when player switches moving vertically-horizontally
     ld c, a                     ; Save X value to C
 
 .setPos:

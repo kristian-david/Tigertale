@@ -10,6 +10,7 @@
 
 include "hardware.inc"  ; Include hardware definitions so we can use nice names for things
 include "engine/constants.inc"  
+include "engine/dialogue_system.asm"  
 include "engine/variables.asm" 
 include "engine/movement.asm"
 include "engine/movement_check.asm"
@@ -21,8 +22,9 @@ include "engine/tiles.asm"
 include "utilities/clear_oam.asm"  
 include "utilities/joypad.asm"
 include "utilities/load_assets.asm"  
-include "text/string_functions.asm"
-include "text/charmap.asm"
+include "dialogue/string_functions.asm"
+include "dialogue/charmap.asm"
+include "dialogue/print_text.asm"
 include "math.asm"
 
 ; Declare Constants
@@ -88,9 +90,11 @@ EntryPoint:
 
     call LoadSpriteTiles
     call LoadFontTiles
+    call LoadDialogueFrameTile
     call LoadBackgroundTiles
     
     call SetTileMap
+    call SetDialogueFrame
 
     ; Setup palettes and scrolling
     ld a, %11100100     ; Define a 4-shade palette from darkest (11) to lightest (00)
@@ -105,6 +109,12 @@ EntryPoint:
     ldh [rSCX], a       ; Set the horizontal camera position (SCX) to the desired X coordinate
     ld a, -40             ; Load the desired Y coordinate into A
     ldh [rSCY], a       ; Set the vertical camera position (SCY) to the desired Y coordinate
+
+    ; Set the position of the Window layer
+    ld a, 137
+    ld [rWY], a
+    ld a, 7
+    ld [rWX], a
 
     ldh [hCurrentKeys], a ; Zero our current keys just to be safe (A is already zero from earlier)
 
@@ -167,6 +177,10 @@ LoopForever:
 
     CALL UpdateJoypad   ; Poll the joypad and store the state in HRAM
     CALL ProcessInput   ; Update the game state in response to user input
+    CALL DialogueSystem
+
+    CALL DialogueMoveTimer
+    CALL PrintTimer
 
     CALL LoopTimer
 

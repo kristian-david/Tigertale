@@ -28,3 +28,16 @@ MOVEMENT_MOVING EQU 1
 MOVE_SPEED EQU 41               ; Either 15 or 30
 CAM_SPEED EQU 5               ; MOVE_SPEED/8
 ANIM_SPEED EQU 7          ; MOVE_SPEED /3 (15 dapat to)
+
+PRINT_SPEED EQU 1
+
+;Dialogue Frames
+TOP_LEFT    EQU $DF
+TOP         EQU $E0
+TOP_RIGHT   EQU $E1
+RIGHT       EQU $E4
+BOT_RIGHT   EQU $E7
+BOT         EQU $E6
+BOT_LEFT    EQU $E5
+LEFT        EQU $E2
+CNTR      EQU $E3

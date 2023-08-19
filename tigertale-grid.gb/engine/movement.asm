@@ -25,15 +25,13 @@ ProcessInput:
     ld d, FACE_DOWN     ; Preload D with the facing value for DOWN
     jr nz, .checkMoving ; If the bit was set, jump to attempt movement in that direction
 
-    ; Add similar checks for other directions (UP, DOWN)
-
     ret                 ; No inputs to handle, return to main loop
 
 ; Check if already moving before attempting to move
 .checkMoving
     ld a, [movementState]  ; Load the current movement state into A
     cp MOVEMENT_MOVING   ; Check if the current state is "moving"
-    jr nz, .attemptMove  ; If not moving, try to attempt movement
+    jr nz, .canMove  ; If not moving, try to attempt movement
 
     ; Player is moving, do any animation or updates here if needed
     ; ...
@@ -42,6 +40,12 @@ ProcessInput:
     ; call CheckTimer
     ret
 
+; Check if can move
+.canMove
+    ld a, [canMove]  ; Load the current movement state into A
+    cp TRUE   ; Check if the current state is "moving"
+    jr z, .attemptMove  ; If not moving, try to attempt movement
+    ret
 
 ; Attempt a move in a direction defined by the contents of BC and D
 ; @param: B Delta Y to apply to current player position
@@ -54,7 +58,6 @@ ProcessInput:
     inc hl                ; Increment HL to point to the next memory location
     ld [hl], b            ; Store the upper byte of BC (register B) into the next memory location
 
-
     ld a, d             ; Move new facing direction from D to A
     ld [wPlayer.facing], a ; Store new facing direction regardless of move success
 
@@ -66,15 +69,22 @@ ProcessInput:
     add c               ; Add the dX value from C to get the new X coordinate
     ld c, a             ; Store the new Y coordinate back in C
 
-    ; Check if there is NPC
+    ; Check if there is NPC on the tile
     call CheckForNPC      ; Call a routine to get the tile ID at the B=y, C=x coordinates
     cp TRUE ; Compare the tile ID from TilemapData to the maximum walkable tile ID
-    ret z              ; If the tile ID is greater than the maximum walkable tile ID, return
+    jr z, .moveInvalid               ; If the tile ID is greater than the maximum walkable tile ID, return
 
-    ; Check if the attempted move is valid
+    ; Check if the tile is walkable
     call GetTileID      ; Call a routine to get the tile ID at the B=y, C=x coordinates
     cp MAX_WALKABLE_TILE_ID ; Compare the tile ID from TilemapData to the maximum walkable tile ID
-    ret nc              ; If the tile ID is greater than the maximum walkable tile ID, return
+    jr nc, .moveInvalid              ; If the tile ID is greater than the maximum walkable tile ID, return
+
+    jr .startMoving
+
+; Move is invalid
+.moveInvalid
+    call UpdateFacingSprite
+    ret
 
 .startMoving
     ; Set up movement direction and attempt to move here as before

@@ -27,6 +27,14 @@ LoadFontTiles:
 
     ret
 
+LoadDialogueFrameTile:
+    ld hl, FrameData
+    ld de, _VRAM + $0DF0                        ;0C00
+    ld bc, FrameData.end - FrameData
+    call MemCopy
+
+    ret
+
 ; Load background tiles to VRAM
 SECTION "Load Background Tiles", ROM0
 

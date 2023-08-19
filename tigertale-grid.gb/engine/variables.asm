@@ -4,15 +4,26 @@
 
 SECTION "Game State Variables", WRAM0
 
+;Utilities
+i:  ds 2        ;For counting (i = 0; i<x; i++)
+
 ; we use 0 as the 'end of string' character
 TextString::
-    ds 16
+    ds 32
 .end::
     
-
+canMove:    ds 1
 
 movementState:   ds 1    ; Define a 1-byte variable to store the movement state
+windowMoveDir:   ds 1    ; -1(Down) 0(Idle) 1(Up)
+
+isPrinting: ds 1
+
+dialogueTilePointer:    ds 1    ; Use to point the tile in dialogueFrame for printing text
+
+;Timers
 gameTick:   ds 1  ; Define a variable to store the timer counter
+dialogueTick:   ds 1    ; Timer for printing text
 
 ; Might not be used if napagana ko without this
 ; movementStartCount: ds 1
@@ -70,5 +81,14 @@ InitializeVariables:
     ; Initialize Movement State
     ld a, MOVEMENT_IDLE
     ld [movementState], a
+
+    ld a, 0
+    ld [windowMoveDir], a
+
+    ld a, FALSE
+    ld [isPrinting], a
+
+    ld a, TRUE
+    ld [canMove], a
 
     ret

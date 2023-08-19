@@ -8,10 +8,19 @@ SECTION "Movement Check Routines", ROMX
 CheckForNPC:
     push bc           ; Store the input coordinates on the stack
 
+    ;Check if same Y pos
     ld a, [wNPC.y]   ; Load the Y coordinate of the NPC into A
+    cp b             ; Compare it with the provided Y coordinate
+    jr z, .checkX  ; If equal, immediately check for X
+
+    ;Don't allow player to pass even the tile above NPC
+    ld a, [wNPC.y]   ; Load the Y coordinate of the NPC into A
+    dec a
     cp b             ; Compare it with the provided Y coordinate
     jr nz, .noCollision  ; If not equal, no collision
 
+.checkX
+    ; Check if same X pos
     ld a, [wNPC.x]   ; Load the X coordinate of the NPC into A
     cp c             ; Compare it with the provided X coordinate
     jr nz, .noCollision  ; If not equal, no collision
