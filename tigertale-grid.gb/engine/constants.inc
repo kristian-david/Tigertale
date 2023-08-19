@@ -29,7 +29,7 @@ MOVE_SPEED EQU 30               ; Either 15 or 30
 CAM_SPEED EQU 3               ; MOVE_SPEED/8
 ANIM_SPEED EQU 6          ; MOVE_SPEED /3 (15 dapat to)
 
-PRINT_SPEED EQU 1
+PRINT_SPEED EQU 4
 
 ;Dialogue Frames
 TOP_LEFT    EQU $DF

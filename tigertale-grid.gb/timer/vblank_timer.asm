@@ -3,6 +3,7 @@ SECTION "Timer", ROM0
 GameTickTimer:
 
     CALL DialogueMoveTimer
+    call PrintTextTimer
 
     ; Call the following functions if the player is moving
     ld a, [movementState]   ; Load movement state
@@ -22,16 +23,39 @@ ret
 ;============================================================================================================================
 
 DialogueMoveTimer:
-
-    ld a, [windowMoveDir]   ; Load movement state
-    cp 0      ; Compare with Idle
-    jr z, .skip            ; Jump if equal to 0 (Idle)
+    ;Skip if window move direction is 0
+    ld a, [windowMoveDir]
+    cp 0
+    jr z, .skip
 
     ld a, [dialogueAnimTick]    ; Load timer counter
     inc a                   ; Increment timer
     ld [dialogueAnimTick], a    ; Store updated timer counter
 
     CALL CheckWindowMovTimer
+
+.skip
+    ret
+
+PrintTextTimer:
+    ; Skip if not printing
+    ld a, [isPrinting]
+    cp TRUE
+    jr nz, .skip
+
+    ld a, [printTextTick]    ; Load timer counter
+    inc a                   ; Increment timer
+    ld [printTextTick], a    ; Store updated timer counter
+
+    cp PRINT_SPEED                  ; Compare with MOVE_SPEED
+    jr c, .skip           ; Jump if timer < MOVE_SPEED
+
+    ; Reset printTextTick
+    ld a, 0
+    ld [printTextTick], a 
+
+
+    Call ProcessPrint
 
 .skip
     ret

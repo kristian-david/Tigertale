@@ -29,6 +29,6 @@ _WarayaName::
 .end
 
 _WarayaIntro::
-    db "Oh, my dear, look",0
-    db "at how much you've grown!", 0
-.end::
+    db "Oh, my dear, look", 0           ;1 End of line
+    db "at how much you've", 0   ;2 Arrow to continue next set of lines
+    db "grown!", 1   ;0 End of dialogue

@@ -31,9 +31,6 @@ npcSpriteTile: ds 1
 camMoveProgress: ds 1        ; from 0-7
 animProgress: ds 1 ; 
 
-animFrameCounter: ds 1     ; used for keeping track of the time to update the walk counter
-camFrameCounter: ds 1      ; used for keeping track of the time to allow movement again
-
 moveDir: ds 2               ; Vector containing the possible direction of player
 
 ; This would hold the position and orientation values of the player
@@ -82,12 +79,7 @@ InitializeVariables:
     ; Initialize Camera Movement Progress
     xor a
     ld [camMoveProgress], a
-    ; Initialize Camera Frame Counter Timer (initialized with CAMERA_SPEED)
-    ld a, [CAM_SPEED]
-    ld [camFrameCounter], a
-    ; Initialize Animation Frame Counter Timer (initialized with ANIMATION_SPEED)
-    ld a, [ANIM_SPEED]
-    ld [animFrameCounter], a
+ 
     ; Initialize Movement State
     ld a, MOVEMENT_IDLE
     ld [movementState], a

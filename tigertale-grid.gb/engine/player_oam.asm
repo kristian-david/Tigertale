@@ -237,7 +237,6 @@ UpdateFacingSprite:
 
 
 
-
 .updateSprite
     add a               ; The player tiles have been stored in VRAM such that the facing direction multiplied
     add a               ;  by 4 will yield the tile ID for the first sprite, so multiply by 4 using adds
