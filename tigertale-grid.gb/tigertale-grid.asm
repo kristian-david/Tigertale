@@ -17,14 +17,14 @@ include "engine/movement_check.asm"
 include "engine/player_oam.asm" 
 include "engine/sprite_oam.asm"
 include "engine/background_set.asm"
-include "engine/timer.asm"
 include "engine/tiles.asm"
 include "utilities/clear_oam.asm"  
+include "utilities/initialize_values.asm"
 include "utilities/joypad.asm"
 include "utilities/load_assets.asm"  
+include "timer/vblank_timer.asm"
 include "dialogue/string_functions.asm"
 include "dialogue/charmap.asm"
-include "dialogue/print_text.asm"
 include "math.asm"
 
 ; Declare Constants
@@ -93,30 +93,11 @@ EntryPoint:
     call LoadDialogueFrameTile
     call LoadBackgroundTiles
     
+    ; Set background and window
     call SetTileMap
     call SetDialogueFrame
 
-    ; Setup palettes and scrolling
-    ld a, %11100100     ; Define a 4-shade palette from darkest (11) to lightest (00)
-    ldh [rBGP], a       ; Set the background palette
-    ld a, %11010000     ; Define a 4-shade palette which omits the 10 value to increase player contrast
-    ldh [rOBP0], a      ; Set an object palette
-    ld a, %11010000     ; Define a 4-shade palette which omits the 10 value to increase player contrast
-    ldh [rOBP1], a      ; Set an object palette
-
-    ; Set the scroll position of the camera
-    ld a, -56             ; Load the desired X coordinate into A
-    ldh [rSCX], a       ; Set the horizontal camera position (SCX) to the desired X coordinate
-    ld a, -40             ; Load the desired Y coordinate into A
-    ldh [rSCY], a       ; Set the vertical camera position (SCY) to the desired Y coordinate
-
-    ; Set the position of the Window layer
-    ld a, 137
-    ld [rWY], a
-    ld a, 7
-    ld [rWX], a
-
-    ldh [hCurrentKeys], a ; Zero our current keys just to be safe (A is already zero from earlier)
+    call InitializeValues
 
     call InitializeVariables
 
@@ -179,12 +160,17 @@ LoopForever:
     CALL ProcessInput   ; Update the game state in response to user input
     CALL DialogueSystem
 
-    CALL DialogueMoveTimer
-    CALL PrintTimer
-
-    CALL LoopTimer
+    CALL GameTickTimer
 
     call ChangeText
+
+    ; Make sure to use `ldh` for HRAM and registers, and not a regular `ld`
+	ldh a, [hFrameCounter]
+	inc a
+	ldh [hFrameCounter], a
+
+    ; cp a, 15 ; Every 15 frames (a quarter of a second), run the following code
+    ; jp nz, Main
     
 
 

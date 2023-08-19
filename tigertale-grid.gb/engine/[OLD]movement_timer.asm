@@ -1,19 +1,19 @@
-SECTION "Timer", ROM0
+; SECTION "Timer", ROM0
 
-; Increments the timer counter and checks if a certain time has passed
-LoopTimer:
-    ld a, [movementState]   ; Load movement state
-    cp MOVEMENT_MOVING      ; Compare with MOVEMENT_MOVING
-    jr nz, .skip            ; Jump if not equal (skip timer update)
+; ; Increments the timer counter and checks if a certain time has passed
+; MoveCooldownTimer:
+;     ld a, [movementState]   ; Load movement state
+;     cp MOVEMENT_MOVING      ; Compare with MOVEMENT_MOVING
+;     jr nz, .skip            ; Jump if not equal (skip timer update)
 
-    ld a, [gameTick]    ; Load timer counter
-    inc a                   ; Increment timer
-    ld [gameTick], a    ; Store updated timer counter
+;     ld a, [moveCooldownTick]    ; Load timer counter
+;     inc a                   ; Increment timer
+;     ld [moveCooldownTick], a    ; Store updated timer counter
 
-    CALL CheckTimer
+;     CALL CheckTimer
 
-.skip
-    ret
+; .skip
+;     ret
 
 ; Checks timer to update animation and movement state
 CheckTimer:
@@ -37,6 +37,7 @@ CheckTimer:
     jr c, .notYetAnimating         ; Jump if timer < animation frame counter
 
     call UpdateStepCounter         ; Call subroutine to update step counter
+    
     ld a, [animFrameCounter]  ; Load animation frame counter
     add ANIM_SPEED             ; Add animation speed
     ld [animFrameCounter], a  ; Store updated animation frame counter
@@ -83,6 +84,8 @@ UpdateStepCounter:
 ResetAnimationCount:
     ld a, MOVEMENT_IDLE
     ld [movementState], a
+
+    ; call UpdateNpcPosition
 
     xor a, a                  ; Clear registers
     ld [gameTick], a

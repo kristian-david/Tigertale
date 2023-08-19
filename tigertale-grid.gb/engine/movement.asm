@@ -25,27 +25,28 @@ ProcessInput:
     ld d, FACE_DOWN     ; Preload D with the facing value for DOWN
     jr nz, .checkMoving ; If the bit was set, jump to attempt movement in that direction
 
+    ; Add similar checks for other directions (UP, DOWN)
+
     ret                 ; No inputs to handle, return to main loop
 
 ; Check if already moving before attempting to move
 .checkMoving
+    ld a, [canMove]  ; Load the current movement state into A
+    cp FALSE   ; Check if the current state is "moving"
+    jr z, .skip  ; If not moving, try to attempt movement
+
     ld a, [movementState]  ; Load the current movement state into A
-    cp MOVEMENT_MOVING   ; Check if the current state is "moving"
-    jr nz, .canMove  ; If not moving, try to attempt movement
+    cp MOVEMENT_IDLE   ; Check if the current state is "moving"
+    jr z, .attemptMove  ; If not moving, try to attempt movement
 
     ; Player is moving, do any animation or updates here if needed
     ; ...
 
     ; it seems working here so dito muna to
     ; call CheckTimer
+.skip
     ret
 
-; Check if can move
-.canMove
-    ld a, [canMove]  ; Load the current movement state into A
-    cp TRUE   ; Check if the current state is "moving"
-    jr z, .attemptMove  ; If not moving, try to attempt movement
-    ret
 
 ; Attempt a move in a direction defined by the contents of BC and D
 ; @param: B Delta Y to apply to current player position
@@ -85,7 +86,7 @@ ProcessInput:
 .moveInvalid
     call UpdateFacingSprite
     ret
-
+    
 .startMoving
     ; Set up movement direction and attempt to move here as before
     ; After a successful move, set movementState to MOVEMENT_MOVING
@@ -168,4 +169,3 @@ MoveCamera:
 
 .done
     ret
-

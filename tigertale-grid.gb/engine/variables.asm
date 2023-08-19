@@ -21,9 +21,6 @@ isPrinting: ds 1
 
 dialogueTilePointer:    ds 1    ; Use to point the tile in dialogueFrame for printing text
 
-;Timers
-gameTick:   ds 1  ; Define a variable to store the timer counter
-dialogueTick:   ds 1    ; Timer for printing text
 
 ; Might not be used if napagana ko without this
 ; movementStartCount: ds 1
@@ -53,8 +50,17 @@ wNPC:
 .offsetY        ds 1    ; Offset to when player moves
 .offsetX        ds 1    ; Offset to when player moves
 
-SECTION "Counter", WRAM0
-wFrameCounter: db
+SECTION "Frame Counters", HRAM
+hFrameCounter:
+	db
+
+gameTick:           ds 1  ; Define a variable to store the timer counter
+dialogueAnimTick:   ds 1    ; Timer for printing text
+printTextTick:      ds 1
+moveCooldownTick:   ds 1
+camMovementTick:    ds 1
+animTick:           ds 1
+
 
 
 SECTION "Initialize", ROM0
@@ -62,7 +68,11 @@ SECTION "Initialize", ROM0
 InitializeVariables:
     ; Initialize Movement Timer (initialized with 0)
     ld a, 0
-    ld [movementTimer], a
+    ld [camMovementTick], a
+    ld [animTick], a
+    ld [moveCooldownTick], a
+    ld [dialogueAnimTick], a
+    ld [printTextTick], a
     ; Initialize Sprite Tile (initialized with 0)
     ld a, 0
     ld [playerSpriteTile], a

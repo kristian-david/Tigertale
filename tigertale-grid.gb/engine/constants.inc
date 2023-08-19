@@ -25,9 +25,9 @@ def FACE_DOWN   EQU 0            ; Define FACE_DOWN as 0
 MOVEMENT_IDLE EQU 0
 MOVEMENT_MOVING EQU 1
 
-MOVE_SPEED EQU 41               ; Either 15 or 30
-CAM_SPEED EQU 5               ; MOVE_SPEED/8
-ANIM_SPEED EQU 7          ; MOVE_SPEED /3 (15 dapat to)
+MOVE_SPEED EQU 30               ; Either 15 or 30
+CAM_SPEED EQU 3               ; MOVE_SPEED/8
+ANIM_SPEED EQU 6          ; MOVE_SPEED /3 (15 dapat to)
 
 PRINT_SPEED EQU 1
 

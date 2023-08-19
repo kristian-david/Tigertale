@@ -53,6 +53,64 @@ RenderNpcSprite:
 
     ret
 
+; Move NPC along with the background when player moves
+MoveSprite:
+    ld a, [wPlayer.facing]
+    cp FACE_UP
+    jr z, .moveUp
+    cp FACE_DOWN
+    jr z, .moveDown
+    jr .horizontal
+
+.moveUp
+    ld a, b
+    add d
+    sub 8
+    jr .setPosY
+
+.moveDown
+    ld a, b
+    sub d
+    add 8
+
+.setPosY
+    ld b, a                     ; Save Y value to B
+
+    ; try to fix x position incosistence if changing horizontally-vertically
+    dec c
+
+    jr .setPos
+    ret
+
+.horizontal
+    ld a, [wPlayer.facing]
+    cp FACE_RIGHT
+    jr z, .moveRight
+
+.moveLeft
+    ld a, c
+    add d
+    sub 8
+    jr .setPosX
+
+.moveRight
+    ld a, c
+    sub d
+    add 8
+
+.setPosX
+    ld c, a                     ; Save X value to C
+
+    ; try to fix y position incosistence if changing horizontally-vertically
+    dec b
+
+.setPos:
+    ld a, b
+    ld [hli], a             ; Store Y coordinate in shadow OAM
+    ld a, c
+    ld [hli], a             ; Store X coordinate in shadow OAM
+    ret
+
 ; NPC Position in World space 
 UpdateNpcPosition:
     ; Save value of BC
@@ -80,58 +138,4 @@ UpdateNpcPosition:
 
     ; Restore value of BC
     pop bc
-    ret
-
-; Move NPC along with the background when player moves
-MoveSprite:
-    ld a, [wPlayer.facing]
-    cp FACE_UP
-    jr z, .moveUp
-    cp FACE_DOWN
-    jr z, .moveDown
-    jr .horizontal
-
-.moveUp
-    ld a, b
-    add d
-    sub 8
-    jr .setPosY
-
-.moveDown
-    ld a, b
-    sub d
-    add 8
-
-.setPosY
-    dec a                       ; Help NPC stay in place when player switches moving vertically-horizontally
-    ld b, a                     ; Save Y value to B
-
-    jr .setPos
-    ret
-
-.horizontal
-    ld a, [wPlayer.facing]
-    cp FACE_RIGHT
-    jr z, .moveRight
-
-.moveLeft
-    ld a, c
-    add d
-    sub 8
-    jr .setPosX
-
-.moveRight
-    ld a, c
-    sub d
-    add 8
-
-.setPosX
-    ; inc a                       ; Help NPC stay in place when player switches moving vertically-horizontally
-    ld c, a                     ; Save X value to C
-
-.setPos:
-    ld a, b
-    ld [hli], a             ; Store Y coordinate in shadow OAM
-    ld a, c
-    ld [hli], a             ; Store X coordinate in shadow OAM
     ret

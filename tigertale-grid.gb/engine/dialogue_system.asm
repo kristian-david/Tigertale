@@ -38,20 +38,6 @@ DialogueSystem:
 
     ret
 
-DialogueMoveTimer:
-
-    ld a, [windowMoveDir]   ; Load movement state
-    cp 0      ; Compare with Idle
-    jr z, .skip            ; Jump if equal to 0 (Idle)
-
-    ld a, [gameTick]    ; Load timer counter
-    inc a                   ; Increment timer
-    ld [gameTick], a    ; Store updated timer counter
-
-    CALL CheckWindowMovTimer
-
-.skip
-    ret
 
 CheckWindowMovTimer:
     ld a, [windowMoveDir]   ; Load movement state
@@ -166,6 +152,10 @@ PrintName:
 
 ;Called once when starting to print a text
 PrintText:
+    ; Check if already printing [SUBJECT FOR REMOVAL SINCE TESTING LANG TO]
+    ld a, [isPrinting]   ; Load movement state=
+    cp TRUE      ; Compare with Idle
+    jr z, .skip            ; Jump if equal to 0 (Idle)
 
     ; Load the address of the converted string into DE
     ld de, _WarayaIntro
@@ -179,26 +169,29 @@ PrintText:
 
     ld a, TRUE
     ld [isPrinting], a
+
+.skip
     ret
 
 ; Always called on game loop
 PrintTimer:
-    ; ld a, [isPrinting]   ; Load movement state=
-    ; cp FALSE      ; Compare with Idle
-    ; jr z, .skip            ; Jump if equal to 0 (Idle)
+    ld a, [isPrinting]   ; Load movement state=
+    cp FALSE      ; Compare with Idle
+    jr z, .skip            ; Jump if equal to 0 (Idle)
 
     ld a, [de]
     ld [hl], a
     inc hl
     inc de
     
-    ; cp 1              ; Copy until find 0
-    ; jr nz, .skip
+    cp 1              ; Copy until find 0
+    jr nz, .skip
 
     
 
-
-
+    ;Finished
+    ld a, FALSE
+    ld [isPrinting], a
 
 .skip
     ret
