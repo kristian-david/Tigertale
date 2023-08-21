@@ -19,7 +19,7 @@ GameTickTimer:
 ret
 
 ;============================================================================================================================
-; Dialogue Timer for movement
+; Dialogue Timer for movement of dialogue box
 ;============================================================================================================================
 
 DialogueMoveTimer:
@@ -32,16 +32,16 @@ DialogueMoveTimer:
     inc a                   ; Increment timer
     ld [dialogueAnimTick], a    ; Store updated timer counter
 
-    CALL CheckWindowMovTimer
+    CALL CheckWindowMoveTimer
 
 .skip
     ret
 
 PrintTextTimer:
     ; Skip if not printing
-    ld a, [isPrinting]
-    cp TRUE
-    jr nz, .skip
+    ld a, [printStatus]
+    cp PRINT_PRINTING
+    jr nz, .checkIfWaiting
 
     ld a, [printTextTick]    ; Load timer counter
     inc a                   ; Increment timer
@@ -54,6 +54,22 @@ PrintTextTimer:
     ld a, 0
     ld [printTextTick], a 
 
+    Call ProcessPrint
+
+.checkIfWaiting
+    cp PRINT_WAITING
+    jr nz, .skip
+
+    ld a, [printTextTick]    ; Load timer counter
+    inc a                   ; Increment timer
+    ld [printTextTick], a    ; Store updated timer counter
+
+    cp PRINT_SPEED+16                  ; Compare with MOVE_SPEED
+    jr c, .skip           ; Jump if timer < MOVE_SPEED
+
+    ; Reset printTextTick
+    ld a, 0
+    ld [printTextTick], a 
 
     Call ProcessPrint
 

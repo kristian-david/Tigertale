@@ -9,8 +9,12 @@
 ;  such that walkable tiles start at 0 and are sequential to simplify the collision check.
 
 include "hardware.inc"  ; Include hardware definitions so we can use nice names for things
+include "dialogue/charmap.asm"
+include "dialogue/clear_text.asm"
+include "dialogue/dialogue_system.asm"  
+include "dialogue/print_text.asm"
+include "dialogue/string_functions.asm"
 include "engine/constants.inc"  
-include "engine/dialogue_system.asm"  
 include "engine/variables.asm" 
 include "engine/movement.asm"
 include "engine/movement_check.asm"
@@ -23,8 +27,6 @@ include "utilities/initialize_values.asm"
 include "utilities/joypad.asm"
 include "utilities/load_assets.asm"  
 include "timer/vblank_timer.asm"
-include "dialogue/string_functions.asm"
-include "dialogue/charmap.asm"
 include "math.asm"
 
 ; Declare Constants
@@ -146,6 +148,8 @@ EntryPoint:
 
     call PopulateShadowOAM          ; Initialize Sprite
     call RenderNpcSprite
+
+    call InitializeDialogueSystem
 
     
 

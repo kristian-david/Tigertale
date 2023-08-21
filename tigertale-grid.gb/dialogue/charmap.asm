@@ -68,3 +68,4 @@ CHARMAP "@", $A5
 CHARMAP ",", $8C
 CHARMAP "'", $87
 CHARMAP "!", $81
+CHARMAP ".", $8E

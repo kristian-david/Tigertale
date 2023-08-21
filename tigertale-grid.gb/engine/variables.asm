@@ -17,8 +17,6 @@ canMove:    ds 1
 movementState:   ds 1    ; Define a 1-byte variable to store the movement state
 windowMoveDir:   ds 1    ; -1(Down) 0(Idle) 1(Up)
 
-isPrinting: ds 1
-
 dialogueTilePointer:    ds 1    ; Use to point the tile in dialogueFrame for printing text
 
 
@@ -86,9 +84,6 @@ InitializeVariables:
 
     ld a, 0
     ld [windowMoveDir], a
-
-    ld a, FALSE
-    ld [isPrinting], a
 
     ld a, TRUE
     ld [canMove], a
