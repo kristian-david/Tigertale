@@ -1,26 +1,4 @@
-; _WarayaIntro::
-; 	text "I am AGATHA of"
-; 	line "the ELITE FOUR!"
 
-; 	para "OAK's taken a lot"
-; 	line "of interest in"
-; 	cont "you, child!"
-
-; 	para "That old duff was"
-; 	line "once tough and"
-; 	cont "handsome! That"
-; 	cont "was decades ago!"
-
-; 	para "Now he just wants"
-; 	line "to fiddle with"
-; 	cont "his #DEX! He's"
-; 	cont "wrong! #MON"
-; 	cont "are for fighting!"
-
-; 	para "<PLAYER>! I'll show"
-; 	line "you how a real"
-; 	cont "trainer fights!"
-; 	done
 
 ; 18 Characters per line only
 
@@ -29,14 +7,24 @@ _WarayaName::
 .end
 
 _WarayaIntro::
-    db "Oh, my dear, look", BR           ;1 End of line
-    db "at how much you've", BR   ;2 Arrow to continue next set of lines
-    db "grown!", CNT   ;0 End of dialogue
+    db "Oh, my dear, look", BR
+    db "at how much you've", BR
+    db "grown!", CNT
 
-    db "It feels like    ", BR           ;1 End of line
-    db "yesterday you were", BR   ;2 Arrow to continue next set of lines
-    db "a little cub.", CNT   ;0 End of dialogue
+    db "It feels like    ", BR
+    db "yesterday you were", BR
+    db "a little cub.", CNT
 
-    db "Now here you are,", BR           ;1 End of line
-    db "running faster    ", BR   ;2 Arrow to continue next set of lines
-    db "than a cheetah!", END   ;0 End of dialogue
+    db "Now here you are,", BR
+    db "running faster    ", BR
+    db "than a cheetah!", CNT, 0, NXT
+.end
+
+
+    ; db CHOICE_YES, "Thanks!", _YES_1
+    ; db CHOICE_NO, "I doubt", _NO_1
+    ; db CHOICE_RPT "Sorry?", _WarayaIntro
+    ; db CHOICE_MSC "SRCSTIC", _MSC_1
+
+_YES_1:
+    db "Thanks Mom"

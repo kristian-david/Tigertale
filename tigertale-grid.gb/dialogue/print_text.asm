@@ -2,9 +2,13 @@
 ; Print Name
 ;============================================================================================================================
 
+SECTION "Print Name", ROM0
+
+; Set dialogueName to data at DE
+; @param DE: Destination address to copy to
 PrintName:
-    ; Load the address of the converted string into DE
-    ld de, _WarayaName
+
+    ; DE should be set by the caller
 
     ; Load the address of the window tile map into HL
     ld hl, _SCRN1       ; This is correct
@@ -28,6 +32,9 @@ PrintName:
 ;============================================================================================================================
 ; Set up variables for printing
 ;============================================================================================================================
+
+SECTION "Print Text", ROM0
+
 PrintText:
     ld de, _WarayaIntro
 
@@ -96,14 +103,24 @@ ProcessPrint:
     jr .skip
 
 .checkCNT
-    ; Check for END
     cp CNT
-    jr nz, .checkEND
+    jr nz, .checkNXT
 
     ld a, PRINT_WAITING
     ld [printStatus], a
 
     call WaitForPlayer
+
+    jr .end
+
+.checkNXT
+    cp NXT
+    jr nz, .checkEND
+
+    call ClearDialogueName
+
+    ld de, _PlayerName
+    call PrintName
 
     jr .end
 

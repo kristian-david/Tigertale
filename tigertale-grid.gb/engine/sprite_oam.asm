@@ -1,6 +1,70 @@
-SECTION "NPC Sprite", ROM0
+;============================================================================================================================
+; Update Position or Facing Direction
+;============================================================================================================================
+SECTION "Update NPC Position or Direction", ROM0
+; NPC Position in World space 
+UpdateNpcPosition:
+    ; Save value of BC
+    push bc
+    
+    ld hl, moveDir  ; Load the address of the variable moveDirection into HL
+    ld c, [hl]            ; Load the lower byte of moveDirection into register C
+    inc hl                ; Increment HL to point to the next memory location
+    ld b, [hl]            ; Load the upper byte of moveDirection into register B
 
-; Set the attributes for the static sprite
+
+    ; Calculate the destination coordinates by applying the deltas
+    ld a, [wNPC.offsetY]   ; Load the current player Y coordinate into A
+    sub b               ; Add the dY value from B to get the new Y coordinate
+    ld b, a             ; Store the new Y coordinate back in B
+    ld a, [wNPC.offsetX]   ; Load the current player X coordinate into A
+    sub c               ; Add the dX value from C to get the new X coordinate
+    ld c, a             ; Store the new Y coordinate back in C
+
+    ; Store the new coordinates
+    ld a, b             ; Load the new Y coordinate into A
+    ld [wNPC.offsetY], a   ; Store the new Y coordinate in memory
+    ld a, c             ; Load the new X coordinate into A
+    ld [wNPC.offsetX], a   ; Store the new X coordinate in memory
+
+    ; Restore value of BC
+    pop bc
+    ret
+
+; Update facing direction of NPC
+; @no params used
+UpdateNpcDirection:
+    ld a, [wNPC.facing]
+
+    cp FACE_LEFT
+    jr nz, .checkRight
+
+    CALL RenderNpcSprite
+    call FlipNpcRight
+    jr .end
+
+.checkRight
+    cp FACE_RIGHT
+    jr nz, .skip
+    ; Convert to left since facing right sprite is just facing left flipped
+    ld a, FACE_LEFT
+    ld [wNPC.facing], a
+
+    CALL RenderNpcSprite
+    call FlipNpcLeft
+    jr .end
+
+.skip
+    CALL RenderNpcSprite
+.end
+ret
+;============================================================================================================================
+; Render NPC Sprite
+;============================================================================================================================
+
+SECTION "Render NPC Sprite", ROM0
+
+; Always called on the timer
 RenderNpcSprite:
     ld hl, wShadowOAM + 32 ; Point HL at the entry in wShadowOAM reserved for the static sprite
 
@@ -29,9 +93,12 @@ RenderNpcSprite:
 
     ld c, a
 
+    ld a, [movementState]   ; This would be used in MoveSprite to see if calculations would be done
     call MoveSprite
 
-    ld a, 0
+.dontMove    
+
+    ld a, [wNPC.facing]
     add a               ; The player tiles have been stored in VRAM such that the facing direction multiplied
     add a               ;  by 4 will yield the tile ID for the first sprite, so multiply by 4 using adds
     ld [hli], a         ; Store the sprite's tile ID in shadow OAM
@@ -54,7 +121,14 @@ RenderNpcSprite:
     ret
 
 ; Move NPC along with the background when player moves
+; @param A: movement state, if MOVEMENT_MOVING/TRUE/1 then do the calculations, else just set the positions
 MoveSprite:
+    ld hl, wShadowOAM + 32 ; Point HL at the entry in wShadowOAM reserved for the static sprite
+
+    ; A is a boolean
+    cp TRUE
+    jr nz, .setPos
+
     ld a, [wPlayer.facing]
     cp FACE_UP
     jr z, .moveUp
@@ -111,31 +185,35 @@ MoveSprite:
     ld [hli], a             ; Store X coordinate in shadow OAM
     ret
 
-; NPC Position in World space 
-UpdateNpcPosition:
-    ; Save value of BC
-    push bc
-    
-    ld hl, moveDir  ; Load the address of the variable moveDirection into HL
-    ld c, [hl]            ; Load the lower byte of moveDirection into register C
-    inc hl                ; Increment HL to point to the next memory location
-    ld b, [hl]            ; Load the upper byte of moveDirection into register B
+;============================================================================================================================
+; Flips
+;============================================================================================================================
 
+FlipNpcLeft:
+    ; 1st Sprite
+    ld   a, %00000000           ; Clear the flip
+    ld   [wShadowOAM+32 + 3], a    ; flip the sprite horizontally
 
-    ; Calculate the destination coordinates by applying the deltas
-    ld a, [wNPC.offsetY]   ; Load the current player Y coordinate into A
-    sub b               ; Add the dY value from B to get the new Y coordinate
-    ld b, a             ; Store the new Y coordinate back in B
-    ld a, [wNPC.offsetX]   ; Load the current player X coordinate into A
-    sub c               ; Add the dX value from C to get the new X coordinate
-    ld c, a             ; Store the new Y coordinate back in C
+    ; 2nd Sprite
 
-    ; Store the new coordinates
-    ld a, b             ; Load the new Y coordinate into A
-    ld [wNPC.offsetY], a   ; Store the new Y coordinate in memory
-    ld a, c             ; Load the new X coordinate into A
-    ld [wNPC.offsetX], a   ; Store the new X coordinate in memory
+    ld   a, %00000000           ; Clear the flip
+    ld   [wShadowOAM+32 + 7], a    ; flip the sprite horizontally
+    ret                 ; Return from the function
 
-    ; Restore value of BC
-    pop bc
-    ret
+FlipNpcRight:
+    ; 1st Sprite
+    ld a, b                     ; b contains the x position
+    sub OBJ_X_OFFSET            ; 1st sprite is in right side, subtracting the offset puts it to left
+    ld [wShadowOAM+33], a      ; set new position of sprite
+
+    ld   a,OAMF_XFLIP
+    ld   [wShadowOAM+35], a    ; flip the sprite horizontally
+
+    ; 2nd Sprites
+    ld a, b
+    add OBJ_X_OFFSET            ; 2nd sprite is in left side, adding the offset puts it to right
+    ld [wShadowOAM+37], a      ; set new position of sprite
+
+    ld   a,OAMF_XFLIP
+    ld   [wShadowOAM+39], a    ; flip the sprite horizontally
+    ret                 ; Return from the function

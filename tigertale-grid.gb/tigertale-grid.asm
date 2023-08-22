@@ -9,9 +9,11 @@
 ;  such that walkable tiles start at 0 and are sequential to simplify the collision check.
 
 include "hardware.inc"  ; Include hardware definitions so we can use nice names for things
+include "characters/waraya.asm"
 include "dialogue/charmap.asm"
 include "dialogue/clear_text.asm"
 include "dialogue/dialogue_system.asm"  
+include "dialogue/initiate_npc_dialogue.asm"
 include "dialogue/print_text.asm"
 include "dialogue/string_functions.asm"
 include "engine/constants.inc"  
@@ -22,6 +24,7 @@ include "engine/player_oam.asm"
 include "engine/sprite_oam.asm"
 include "engine/background_set.asm"
 include "engine/tiles.asm"
+include "engine/process_input.asm"
 include "utilities/clear_oam.asm"  
 include "utilities/initialize_values.asm"
 include "utilities/joypad.asm"

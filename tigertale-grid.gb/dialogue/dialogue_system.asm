@@ -10,6 +10,10 @@ isArrowWaitVisible: ds 1
 
 SECTION "Dialogue System", ROM0
 
+_PlayerName::
+    db "You", 0
+.end
+
 rsreset
 def PRINT_IDLE      rb 1            ; Not Printing
 def PRINT_PRINTING  rb 1            ; Printing
@@ -18,8 +22,15 @@ def PRINT_WAITING   rb 1            ; Wait for player before printing next set o
 rsreset
 def BR          rb 1            ; Break line
 def CNT         rb 1            ; Continue
-def NXT         rb 1             ; Next character to talk
-def END         rb 1             ; End
+def NXT         rb 1            ; Next character to talk
+def CHC         rb 1            ; Choice
+def END         rb 1            ; End
+
+rsreset
+def CHOICE_YES      rb 1        ; Yes / Agree / Positive
+def CHOICE_NO       rb 1        ; No / Disagree / Negative
+def CHOICE_RPT      rb 1        ; What? / Clarify / Repeat the dialogue
+def CHOICE_MSC      rb 1        ; Miscellaneous / Sarcastic / Joke
 
 def ARROW_WAIT  EQU $ED
 
@@ -38,21 +49,11 @@ DialogueSystem:
     cp 0
     jr nz, .skip
 
-    ldh a, [hCurrentKeys]  ; Load newly pressed keys byte into A
-
-    ; Check if A button is pressed (bit 0)
-    bit PADB_A, a
-    jr nz, PressA ; Jump to aButtonPressed if A button is pressed
-
-    ; Check if B button is pressed (bit 4)
-    bit PADB_B, a
-    jr nz, PressB ; Jump to bButtonPressed if B button is pressed
-
     ; Continue with other logic if no button is pressed
 .skip
     ret
 
-PressA:
+EnableOrContinueDialogue:
 
     ld a, [isDialogueEnabled]
     cp FALSE
@@ -66,14 +67,14 @@ PressA:
 .tryContinueDialogue
     ld a, [printStatus]
     cp PRINT_WAITING
-    jr nz, .noActionA
+    jr nz, .skip
 
     call ContinueDialogue
 
-.noActionA
+.skip
     ret
 
-PressB:
+CancelDialogue:
     ld a, -1
     ld [windowMoveDir], a
 
@@ -139,6 +140,7 @@ EnableDialogue:
     ld a, TRUE
     ld [isDialogueEnabled], a
 
+    ld de, _WarayaName
     call PrintName
 
     ret
@@ -196,6 +198,7 @@ ret
 ;============================================================================================================================
 ; DialogueControls
 ;============================================================================================================================
+
 SECTION "Dialogue Controls", ROM0
 
 ContinueDialogue:
