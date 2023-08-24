@@ -1,3 +1,10 @@
+SECTION "Print variables", WRAM0
+
+; we use 0 as the 'end of string' character
+TextString::
+    ds 128
+.end::
+
 ;============================================================================================================================
 ; Print Name
 ;============================================================================================================================
@@ -36,8 +43,6 @@ PrintName:
 SECTION "Print Text", ROM0
 
 PrintText:
-    ld de, _WarayaIntro
-
     ld a, 0
     ld [printProgress+0], a
     ld [printProgress+1], a
@@ -59,9 +64,15 @@ PrintText:
 
 ;============================================================================================================================
 ; Process the actual printing of text with Typrewriter style animation
+; @param textString: Contains the string to be printed
+
+; Problem: textString needs to be big enough to handle paragraphs but the developer was not able to set a variable big enough.
+;           An alternative solution is to use pointers, make register DE point to the paragraph that needs to be printed
+;
 ;============================================================================================================================
+
 ProcessPrint:
-    ld de, _WarayaIntro
+    ld de, TextString
 
     ; Use appropriate _SCRN1+i where i is an offset to place the line of string in its position in the dialogue box
     call SelectLine

@@ -8,7 +8,7 @@ ChangeText:
     ld hl, TextString   ; Load the address of TextString into HL
     ld b, TextString.end - TextString; Calculate the buffer length
 
-    ld de, NewString    ; Load the address of NewString into DE
+    ld de, _WarayaIntroText    ; Load the address of NewString into DE
 
 .changeString
     ld a, [de]           ; Load the character from NewString into A

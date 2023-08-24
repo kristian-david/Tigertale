@@ -7,3 +7,10 @@ wNPC:
 .offsetY        ds 1    ; Offset to when player moves
 .offsetX        ds 1    ; Offset to when player moves
 .defaultFacing  ds 1    ; Default facing direction
+.end
+
+_Waraya:
+    .progress   ds 1
+    .isHostile  ds 1
+    .isAlive    ds 1
+.end

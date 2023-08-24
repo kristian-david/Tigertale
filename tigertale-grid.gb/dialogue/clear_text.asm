@@ -47,7 +47,7 @@ ClearDialogueText:
 ; HARDCODED remove line 3
     ld de, DialogueFrameTiles+20   ; Load the address of the dialogue frame tiles
     ld hl, _SCRN1+95       ; 31 is offset for next line but 20 would be added in the loop so start with 11
-    ld b, 20
+    ld b, 21
 
 .setTile3
     call SetDialogueFrameTile

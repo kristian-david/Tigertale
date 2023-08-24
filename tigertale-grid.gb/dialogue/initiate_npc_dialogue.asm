@@ -1,3 +1,9 @@
+;============================================================================================================================
+; Check the player tries and can initiate a dialogue
+;
+; TryDialogueA and TryDialogueB are called from the ProcessInput function respectively
+;============================================================================================================================
+
 SECTION "Initiate NPC Dialogue", ROM0
 
 TryDialogueA:
@@ -23,7 +29,7 @@ TryDialogueA:
     cp TRUE ; Compare the tile ID from TilemapData to the maximum walkable tile ID
     jr nz, .skip               ; If the tile ID is greater than the maximum walkable tile ID, return
 
-    Call EnableOrContinueDialogue
+    Call PickNpcDialogue
 
     ;Change facing direction of NPC
     ld a, [wPlayer.facing]

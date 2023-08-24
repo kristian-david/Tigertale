@@ -3,11 +3,6 @@
 ;============================================================================================================================
 
 SECTION "Game State Variables", WRAM0
-
-; we use 0 as the 'end of string' character
-TextString::
-    ds 32
-.end::
     
 canMove:    ds 1
 
