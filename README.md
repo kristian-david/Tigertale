@@ -1,6 +1,8 @@
 # Tigertale
 ### Kristian David, 2023
 
+<img width="636" alt="Screenshot 2023-08-24 at 21 02 49" src="https://github.com/kristian-david/Tigertale/assets/29837647/3daec74d-7a71-4244-bae4-613912a92aed">
+
 ## Game Summary
 ### Tigertale is a captivating action-adventure game for the Game Boy that utilizes a unique pseudo-3D visual style to immerse players in a world where they play as a powerful tiger during World War II. The game's narrative progression is divided into three chapters, each presenting distinct challenges and moral dilemmas that contribute to a rich and thought-provoking gameplay experience.
 
